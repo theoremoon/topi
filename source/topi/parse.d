@@ -80,7 +80,8 @@ Ast read_factor(Source src) {
 		return e;
 
 	}
-	throw new Exception("Unexpected character: '%c'".format(c));
+	src.unget(c);
+	return null;
 }
 Ast read_term(Source src) {
 	auto f1 = src.read_factor;
@@ -210,17 +211,66 @@ Ast read_function(Source src) {
 	if (! name) {
 		throw new Exception("Function Name Required");
 	}
+	if (! src.expect_with_skip(['('])) {
+		throw new Exception("( is expected");
+	}
+	string[] args;
+	while (true) {
+		auto arg = src.read_identifier;
+		if (! arg) {
+			if (args.length > 0) {
+				throw new Exception(") is expected");
+			}
+			if (!src.expect_with_skip([')'])) {
+				throw new Exception(") is expected");
+			}
+			break;
+		}
+		args ~= arg.name;
+		if (!src.get_with_skip(c)) {
+			throw new Exception(", or ) is expected");
+		}
+		if (c == ',') {
+			continue;
+		}
+		if (c == ')') {
+			break;
+		}
+		throw new Exception(", or ) is expected but got '%c'".format(c));
+	}
 
 	if (! src.expect_with_skip(['{'])) {
 		throw new Exception("{ is expected");
 	}
 	BlockAst block = src.read_block;
 	
-	return new FunctionAst(name.name, block);
+	return new FunctionAst(name.name, args, block);
 }
 FunctionCallAst read_function_call(Source src, string fname) {
-	if (!src.expect_with_skip([')'])) {
-		throw new Exception(") is expected");
+	Ast[] args;
+	while (true) {
+		auto arg = src.read_expr;
+		if (! arg) {
+			if (args.length > 0) {
+				throw new Exception("Expression is expected");
+			}
+			if (!src.expect_with_skip([')'])) {
+				throw new Exception(") is expected");
+			}
+			break;
+		}
+		args ~= arg;
+		dchar c;
+		if (!src.get_with_skip(c)) {
+			throw new Exception(", or ) is expected");
+		}
+		if (c == ',') {
+			continue;
+		}
+		if (c == ')') {
+			break;
+		}
+		throw new Exception(", or ) is expected but got '%c'".format(c));
 	}
-	return new FunctionCallAst(fname);
+	return new FunctionCallAst(fname, args);
 }

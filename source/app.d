@@ -47,7 +47,7 @@ void main(string[] args)
 			func.emit();
 		}
 
-		auto mainFunc = new FunctionAst("_func", new BlockAst(stmts));
+		auto mainFunc = new FunctionAst("_func", [], new BlockAst(stmts));
 		mainFunc.emit;
 	}
 }

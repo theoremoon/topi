@@ -8,9 +8,6 @@ import std.algorithm;
 
 /// Env: management local variables
 alias Env=string[];
-auto search(Env e, string varName) {
-	return e.countUntil(varName);	
-}
 
 
 /// Ast: Abstract Syntax Tree
@@ -29,10 +26,9 @@ class DefinitionAst : Ast {
 			this.value = value;
 		}	
 		override void emit() {
-			auto p = FunctionAst.vars.search(name);
-			
+			auto p = FunctionAst.search(name);
 			value.emit;
-			writef("\tmov DWORD[rbp-%d], eax\n", (p+1)*8);
+			writef("\tmov DWORD[rbp%+d], eax\n", p*8);
 		}
 		override string toString() {
 			return "(def %s %s)".format(name, value);
@@ -48,11 +44,11 @@ class IdentifierAst : Ast {
 			this.name = name;
 		}
 		override void emit() {
-			auto p = FunctionAst.vars.search(name);
-			if (p == -1) {
+			auto p = FunctionAst.search(name);
+			if (p == 0) {
 				throw new Exception("variable %s is not defined".format(name));
 			}
-			writef("\tmov eax, DWORD[rbp-%d]\n", (p+1)*8);
+			writef("\tmov eax, DWORD[rbp%+d]\n", p*8);
 		}
 		override string toString() {
 			return name;
@@ -148,14 +144,28 @@ class FunctionAst : Ast {
 		/// functions: management all functions (*currently*, all function is in global scope)
 		static FunctionAst[string] functions;
 		static Env vars;
+		static Env argvars;
+		static auto search(string name) {
+			auto p = vars.countUntil(name);
+			if (p != -1) {
+				return -(p+1);
+			}
+			p = argvars.countUntil(name);
+			if (p != -1) {
+				return p+2;
+			}
+			return 0;
+		}
 
 		string name;
+		string[] args;
 		BlockAst block;
-		this(string name, BlockAst block) {
+		this(string name, string[] args, BlockAst block) {
 			if ((name in functions) !is null) {
 				throw new Exception("Duplicated definition: function %s".format(name));
 			}
 			this.name = name;
+			this.args = args;
 			this.block = block;
 
 			functions[name] = this;
@@ -163,31 +173,39 @@ class FunctionAst : Ast {
 		override void emit() {
 			auto preEnv = vars.dup;
 			vars = [];
+			argvars = args;
 			foreach (stmt; block.stmts) {
 				if (auto def = cast(DefinitionAst)stmt) {
-					if (vars.search(def.name) != -1) {
+					if (search(def.name) != 0) {
 						throw new Exception("variable %s is already defined".format(def.name));
 					}
 					vars ~= def.name;
 				}
 			}
 			writef("%s:\n", name);
+			write("\tpush rbp\n");
+			write("\tmov rbp, rsp\n");
 			if (vars.length > 0) {
-				write("\tpush rbp\n");
-				write("\tmov rbp, rsp\n");
 				writef("\tsub rsp, %d\n", vars.length*8);
 			}
 			foreach (stmt; block.stmts) {
 				stmt.emit();
 			}
-			if (vars.length > 0) {
-				write("\tleave\n");
-			}
+			write("\tleave\n");
 			write("\tret\n");
 			vars = preEnv;
 		}
 		override string toString() {
-			return "(func %s %s)".format(name, block);
+			char[] buf;
+			buf ~= "(func %s (".format(name);
+			foreach (arg; args) {
+				buf ~= "%s ".format(arg);
+			}
+			if (args.length > 0) {
+				buf = buf[0..$-1];
+			}
+			buf ~= ") %s)".format(block);
+			return cast(string)buf;
 		}
 
 }
@@ -196,13 +214,26 @@ class FunctionCallAst : Ast
 {
 	public:
 		string fname;
-		this(string fname) {
+		Ast[] args;
+		this(string fname, Ast[] args) {
 			this.fname = fname;
+			this.args = args;
 		}
 		override void emit() {
+			foreach(arg; args) {
+				arg.emit;
+				write("\tpush rax\n");
+			}
 			writef("\tcall %s\n", fname);
+			writef("\tadd rsp, %d\n", args.length*8);
 		}
 		override string toString() {
-			return "(%s)".format(fname);
+			char[] buf;
+			buf ~= "(%s".format(fname);
+			foreach(arg; args) {
+				buf ~= " %s".format(arg);
+			}
+			buf ~= ")";
+			return cast(string)buf;
 		}
 }
