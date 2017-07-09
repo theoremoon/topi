@@ -1,19 +1,39 @@
 import std.stdio;
-import core.stdc.stdio : ungetc;
+import core.stdc.stdio : ungetc, getc;
 import std.uni;
 
-auto getc(ref dchar c) {
-	return readf("%c", c);
-}
-void ungetc(ref File f, dchar c) {
-	ungetc(c, f.getFP);
+class Source {
+	public:
+		dchar[] buf;
+		File f;
+
+		alias f this;
+		this(File f) {
+			this.f = f;
+		}
+		uint get(ref dchar c) {
+			if (buf.length > 0) {
+				c = buf[$-1];
+				buf = buf[0..$-1];
+				return 1;
+			}
+			int a = f.getFP.getc;
+			if (a == EOF) {
+				return 0;
+			}
+			c = a;
+			return 1;
+		}
+		void unget(dchar c) {
+			buf ~= c;
+		}
 }
 
-int read_number(int n) {
+int read_number(Source src, int n) {
 	dchar c;
-	while (getc(c)) {
+	while (src.get(c)) {
 		if (! c.isNumber) {
-			stdin.ungetc(c);
+			src.unget(c);
 			break;
 		}
 		n = n*10 + (c-'0');
@@ -33,12 +53,15 @@ void emit_nasm(int n) {
 
 void main()
 {
+	Source src = new Source(stdin);
 	dchar c;
-	getc(c);
+	if (src.get(c) == 0) {
+		throw new Exception("source is empty");
+	}
 	if (!c.isNumber) {
 		throw new Exception("number is required");
 	}
 
-	int n = read_number(c-'0');
+	int n = read_number(src, c-'0');
 	emit_nasm(n);
 }
