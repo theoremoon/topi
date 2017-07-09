@@ -37,9 +37,11 @@ class DeclarationAst : Ast {
 class DefinitionAst : Ast {
 	public:
 		string name;
+		string type;
 		Ast value;
-		this(string name, Ast value) {
+		this(string type, string name, Ast value) {
 			this.name = name;
+			this.type = type;
 			this.value = value;
 		}	
 		override void emit() {
@@ -48,12 +50,11 @@ class DefinitionAst : Ast {
 			writef("\tmov DWORD[rbp%+d], eax\n", p*8);
 		}
 		override string toString() {
-			return "(def %s %s)".format(name, value);
+			return "(def %s:%s %s)".format(type, name, value);
 		}
 }
 
 /// IdentifierAst: identifier
-/// (this is available on source code only) 
 class IdentifierAst : Ast {
 	public:
 		string name;
@@ -91,6 +92,7 @@ class IntegerAst : Ast {
 }
 
 /// BlockAst: block is { ... } which is collection of statements
+/// TODO: block will be create new scope
 class BlockAst : Ast {
 	public:
 		Ast[] stmts;
@@ -160,8 +162,8 @@ class FunctionAst : Ast {
 	public:
 		/// functions: management all functions (*currently*, all function is in global scope)
 		static FunctionAst[string] functions;
-		static Env vars;
-		static Env argvars;
+		static Env vars; // local variables
+		static Env argvars; // arugment variables
 		static auto search(string name) {
 			auto p = vars.countUntil(name);
 			if (p != -1) {
@@ -169,7 +171,7 @@ class FunctionAst : Ast {
 			}
 			p = argvars.countUntil(name);
 			if (p != -1) {
-				return p+2;
+				return p+2; // 0: rbp 1: return addr 2: arg1 3: arg2...
 			}
 			return 0;
 		}

@@ -13,6 +13,7 @@ bool isIdentChar(dchar c) {
 }
 
 
+/// read_identifier: read identifier or return null with read nothing
 IdentifierAst read_identifier(Source src) {
 	dchar c;
 	if (!src.get_with_skip(c)) {
@@ -24,6 +25,8 @@ IdentifierAst read_identifier(Source src) {
 	src.unget(c);
 	return null;
 }
+
+/// read_identifier: read_identifier which begin from c or throw exception
 IdentifierAst read_identifier(Source src, dchar c) {
 	dchar[] buf;
 	buf ~= c;
@@ -36,6 +39,8 @@ IdentifierAst read_identifier(Source src, dchar c) {
 	}
 	return new IdentifierAst(buf.to!string);
 }
+
+/// read_number: read decimal number which begin from n
 IntegerAst read_number(Source src, int n) {
 	dchar c;
 	while (src.get(c)) {
@@ -47,25 +52,35 @@ IntegerAst read_number(Source src, int n) {
 	}
 	return new IntegerAst(n);
 }
+
+/// read_factor: read factor (number or identifier or  function call or (expr)) or return null
 Ast read_factor(Source src) {
 	dchar c;
 	if (! src.get_with_skip(c)) {
 		return null;
 	}
+
+	// Number
 	if (c.isNumber) {
 		return src.read_number(c-'0');
 	}
+
+	// Identifier
 	if (c.isFirstChar) {
 		auto ident = src.read_identifier(c);
 		if (! src.get_with_skip(c)) {
 			return ident;
 		}
+
+		// calling function
 		if (c == '(') {
 			return src.read_function_call(ident.name);
 		}
 		src.unget(c);
 		return ident;
 	}
+
+	// ( expr )
 	if (c == '(') {
 		auto e = src.read_expr;
 		if (! e) {
@@ -80,9 +95,13 @@ Ast read_factor(Source src) {
 		return e;
 
 	}
+
+	// unknown character
 	src.unget(c);
 	return null;
 }
+
+/// read_term: read term ( factor or factor * term ) or return null
 Ast read_term(Source src) {
 	auto f1 = src.read_factor;
 	if (! f1) {
@@ -102,6 +121,8 @@ Ast read_term(Source src) {
 	}
 	return new BinopAst(c, f1, f2);
 }
+
+/// read_expr: read expression ( term or term +- expr)  or return null
 Ast read_expr(Source src) {
 	auto t1 = src.read_term;
 	if (!t1) {
@@ -121,6 +142,8 @@ Ast read_expr(Source src) {
 	}
 	return new BinopAst(c, t1, t2);
 }
+
+/// read_stmt: read statement( {...} or expr\n or definition ) or return null
 Ast read_stmt(Source src) {
 	dchar c;
 	if (! src.get_with_skip(c)) {
@@ -129,8 +152,12 @@ Ast read_stmt(Source src) {
 	if (c == '{') {
 		return src.read_block;
 	}
+
+	// definition?
 	if (c.isFirstChar) {
 		auto type = src.read_identifier(c);
+
+		// definition
 		if (type.name == "Int") {
 			auto ident = src.read_identifier;
 			if (! ident) {
@@ -146,12 +173,13 @@ Ast read_stmt(Source src) {
 			if (! src.expect_with_skip([' ', ';'])) {
 				throw new Exception("Expression should end with ; or \\n");
 			}
-			return new DefinitionAst(ident.name, value);
+			return new DefinitionAst(type.name, ident.name, value);
 		}
 		else {
 			src.unget(type.name);
 		}
-	} else {
+	}
+	else {
 		src.unget(c);
 	}
 	auto e = src.read_expr;
@@ -163,6 +191,7 @@ Ast read_stmt(Source src) {
 	}
 	return e;
 }
+/// read_block: read block {...} collection of statements
 BlockAst read_block(Source src) {
 	Ast[] asts;
 	while (true) {
@@ -177,6 +206,8 @@ BlockAst read_block(Source src) {
 		asts ~= src.read_stmt;
 	}
 }
+
+/// read_toplevel: read toplevel element: function definition or statements or null
 Ast read_toplevel(Source src) {
 	dchar c;
 	if (! src.get_with_skip(c)) {
@@ -199,6 +230,8 @@ Ast read_toplevel(Source src) {
 	}
 	return src.read_stmt;
 }
+
+/// read_declaration: read variable declrataion or return null
 DeclarationAst read_declaration(Source src) {
 	auto type = src.read_identifier;
 	if (! type) {
@@ -214,6 +247,8 @@ DeclarationAst read_declaration(Source src) {
 	}
 	return new DeclarationAst(type.name, name.name);
 }
+
+/// read_function: read function definition or throw exception 
 Ast read_function(Source src) {
 	IdentifierAst name = src.read_identifier;
 	if (! name) {
@@ -222,6 +257,8 @@ Ast read_function(Source src) {
 	if (! src.expect_with_skip(['('])) {
 		throw new Exception("( is expected");
 	}
+
+	// read arguments
 	DeclarationAst[] args;
 	while (true) {
 		auto arg = src.read_declaration;
@@ -232,6 +269,7 @@ Ast read_function(Source src) {
 			if (! src.expect_with_skip([')'])) {
 				throw new Exception(") is expected");
 			}
+			// no arguments ()
 			break;
 		}
 		args ~= arg;
@@ -255,6 +293,8 @@ Ast read_function(Source src) {
 	
 	return new FunctionAst(name.name, args, block);
 }
+
+/// read_function_call: read calling function
 FunctionCallAst read_function_call(Source src, string fname) {
 	Ast[] args;
 	while (true) {
