@@ -9,21 +9,38 @@ class Ast {
 	abstract void emit();
 }
 
+/// IntegerAst: integer type
+class IntegerAst : Ast {
+	public:
+		int v;
+		this(int v) {
+			this.v = v;
+		}
+
+		/// emit: set value to rax
+		override void emit() {
+			writef("\tmov rax, %d\n", v);
+		}
+}
 
 /// BinopAst: Ast of Binary operator like +, -, ... 
 class BinopAst : Ast {
 	public:
-		int left, right;
+		Ast left, right;
 		dchar op;
-		this(dchar op, int left, int right) {
+		this(dchar op, Ast left, Ast right) {
 			this.left = left;
 			this.right = right;
 			this.op = op;
 		}
 		override void emit() {
 			if (op == '+') {
-				writef("\tmov rax, %d\n", this.left);
-				writef("\tadd rax, %d\n", this.right);
+				this.left.emit;
+				write("\tpush rax\n");
+				write("\tpop rbx\n");
+				this.right.emit;
+				
+				write("\tadd rax, rbx\n");
 				return;
 			}
 			throw new Exception("Unknwon operator '%c'".format(op));
@@ -61,7 +78,7 @@ class Source {
 		}
 }
 
-int read_number(Source src, int n) {
+Ast read_number(Source src, int n) {
 	dchar c;
 	while (src.get(c)) {
 		if (! c.isNumber) {
@@ -70,18 +87,18 @@ int read_number(Source src, int n) {
 		}
 		n = n*10 + (c-'0');
 	}
-	return n;
+	return new IntegerAst(n);
 }
 Ast read_expr(Source src) {
 	dchar c;
 	src.get(c);
-	int left = src.read_number(c-'0');
+	auto left = src.read_number(c-'0');
 
 	dchar op;
 	src.get(op);
 
 	src.get(c);
-	int right = src.read_number(c-'0');
+	auto right = src.read_number(c-'0');
 
 	return new BinopAst(op, left, right);
 }
