@@ -3,6 +3,7 @@ module topi.parse;
 import topi;
 import std.uni;
 import std.conv;
+import std.range;
 import std.format;
 
 bool isFirstChar(dchar c) {
@@ -248,31 +249,21 @@ DeclarationAst read_declaration(Source src) {
 	return new DeclarationAst(type.name, name.name);
 }
 
-/// read_function: read function definition or throw exception 
-Ast read_function(Source src) {
-	IdentifierAst name = src.read_identifier;
-	if (! name) {
-		throw new Exception("Function Name Required");
-	}
-	if (! src.expect_with_skip(['('])) {
-		throw new Exception("( is expected");
-	}
-
-	// read arguments
-	DeclarationAst[] args;
+/// read_function_type: read function types
+IdentifierAst[] read_function_type(Source src) {
+	IdentifierAst[] types;
 	while (true) {
-		auto arg = src.read_declaration;
-		if (! arg) {
-			if (args.length > 0) {
-				throw new Exception(") is expected");
+		auto t = src.read_identifier;
+		if (!t) {
+			if (types.length > 0) {
+				throw new Exception("type is expected");
 			}
 			if (! src.expect_with_skip([')'])) {
 				throw new Exception(") is expected");
 			}
-			// no arguments ()
 			break;
 		}
-		args ~= arg;
+		types ~= t;
 		dchar c;
 		if (!src.get_with_skip(c)) {
 			throw new Exception(", or ) is expected");
@@ -284,6 +275,69 @@ Ast read_function(Source src) {
 			break;
 		}
 		throw new Exception(", or ) is expected but got '%c'".format(c));
+	}
+	return types;
+}
+
+/// read_function: read function definition or throw exception 
+Ast read_function(Source src) {
+	// read function type
+	dchar c;
+	if (!src.get_with_skip(c)) {
+		throw new Exception("Unexpected EOF.");
+	}
+	string[] argtypes;
+	if (c == '(') {
+		foreach(t; src.read_function_type) {
+			argtypes ~= t.name;
+		}
+	}
+	else {
+		src.unget(c);
+	}
+		
+	IdentifierAst name = src.read_identifier;
+	if (! name) {
+		throw new Exception("Function Name Required");
+	}
+	if (! src.expect_with_skip(['('])) {
+		throw new Exception("( is expected");
+	}
+
+	// read arguments
+	string[] argnames;
+	while (true) {
+		auto arg = src.read_identifier;
+		if (! arg) {
+			if (argnames.length > 0) {
+				throw new Exception(") is expected");
+			}
+			if (! src.expect_with_skip([')'])) {
+				throw new Exception(") is expected");
+			}
+			// no arguments ()
+			break;
+		}
+		argnames ~= arg.name;
+		if (!src.get_with_skip(c)) {
+			throw new Exception(", or ) is expected");
+		}
+		if (c == ',') {
+			continue;
+		}
+		if (c == ')') {
+			break;
+		}
+		throw new Exception(", or ) is expected but got '%c'".format(c));
+	}
+
+	if (argtypes.length != argnames.length) {
+		throw new Exception("Invalid function definition: count of argument type and argument is mismatched");
+	}
+
+	DeclarationAst[] args;
+	foreach (t, n; zip(argtypes, argnames)) {
+		args ~= new DeclarationAst(t, n);
 	}
 
 	if (! src.expect_with_skip(['{'])) {
