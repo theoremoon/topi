@@ -48,6 +48,11 @@ class Source {
 		void unget(dchar c) {
 			buf ~= c;
 		}
+		void unget(string s) {
+			foreach_reverse (dchar c; s) {
+				unget(c);
+			}
+		}
 		bool expect(dchar c) {
 			dchar d;
 			if (!get(d)) {

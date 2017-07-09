@@ -5,11 +5,30 @@ import std.uni;
 import std.conv;
 import std.format;
 
+bool isFirstChar(dchar c) {
+	return (c.isAlpha || c == '_');
+}
+bool isIdentChar(dchar c) {
+	return c.isAlphaNum || c == '_';
+}
+
+
+IdentifierAst read_identifier(Source src) {
+	dchar c;
+	if (!src.get_with_skip(c)) {
+		return null;
+	}
+	if (c.isFirstChar) {
+		return src.read_identifier(c);
+	}
+	src.unget(c);
+	return null;
+}
 IdentifierAst read_identifier(Source src, dchar c) {
 	dchar[] buf;
 	buf ~= c;
 	while (src.get(c)) {
-		if (! c.isAlphaNum && c != '_') {
+		if (! c.isIdentChar) {
 			src.unget(c);
 			break;
 		}
@@ -36,7 +55,7 @@ Ast read_factor(Source src) {
 	if (c.isNumber) {
 		return src.read_number(c-'0');
 	}
-	if (c.isAlpha || c == '_') {
+	if (c.isFirstChar) {
 		auto ident = src.read_identifier(c);
 		if (! src.get_with_skip(c)) {
 			return ident;
@@ -109,7 +128,31 @@ Ast read_stmt(Source src) {
 	if (c == '{') {
 		return src.read_block;
 	}
-	src.unget(c);
+	if (c.isFirstChar) {
+		auto type = src.read_identifier(c);
+		if (type.name == "Int") {
+			auto ident = src.read_identifier;
+			if (! ident) {
+				throw new Exception("Identifier expected");
+			}
+			if (! src.expect_with_skip(['='])) {
+				throw new Exception("= is required");
+			}
+			auto value = src.read_expr;
+			if (! value) {
+				throw new Exception("Expression expected");
+			}
+			if (! src.expect_with_skip([' ', ';'])) {
+				throw new Exception("Expression should end with ; or \\n");
+			}
+			return new DefinitionAst(ident.name, value);
+		}
+		else {
+			src.unget(type.name);
+		}
+	} else {
+		src.unget(c);
+	}
 	auto e = src.read_expr;
 	if (!e ) {
 		return null;
@@ -144,9 +187,7 @@ Ast read_toplevel(Source src) {
 			if (ident.name == "Func") {
 				return src.read_function;
 			}
-			foreach_reverse (dchar c2; ident.name) {
-				src.unget(c2);
-			}
+			src.unget(ident.name);
 		}
 		else {
 			src.unget(c);
@@ -162,10 +203,13 @@ Ast read_function(Source src) {
 	if (! src.get_with_skip(c)) {
 		throw new Exception("Function name is expected");
 	}
-	if (!c.isAlpha && c != '_') {
+	if (!c.isFirstChar) {
 		throw new Exception("Alphabet or underscore '_' is expected but got '%c'".format(c));
 	}
 	IdentifierAst name = src.read_identifier(c);
+	if (! name) {
+		throw new Exception("Function Name Required");
+	}
 
 	if (! src.expect_with_skip(['{'])) {
 		throw new Exception("{ is expected");

@@ -3,11 +3,44 @@ module topi.ast;
 import std.stdio;
 import std.conv;
 import std.format;
+import std.algorithm;
+
+
+/// Env: management local variables
+alias Env=string[];
+auto search(Env e, string varName) {
+	return e.countUntil(varName);	
+}
+
 
 /// Ast: Abstract Syntax Tree
 class Ast {
 	/// emit: emit nasm source code
 	abstract void emit();
+}
+
+/// DefinitionAst : definition of variable like Int a = 10
+class DefinitionAst : Ast {
+	public:
+		string name;
+		Ast value;
+		this(string name, Ast value) {
+			this.name = name;
+			this.value = value;
+		}	
+		override void emit() {
+			if (FunctionAst.vars.search(name) != -1) {
+				throw new Exception("variable %s is already defined".format(name));
+			}
+			FunctionAst.vars ~= name;
+			auto p = FunctionAst.vars.search(name);
+			
+			value.emit;
+			writef("\tmov DWORD[rbp-%d], eax\n", (p+1)*8);
+		}
+		override string toString() {
+			return "(def %s %s)".format(name, value);
+		}
 }
 
 /// IdentifierAst: identifier
@@ -19,7 +52,11 @@ class IdentifierAst : Ast {
 			this.name = name;
 		}
 		override void emit() {
-			throw new Exception("IdentifierAst is not emittable");
+			auto p = FunctionAst.vars.search(name);
+			if (p == -1) {
+				throw new Exception("variable %s is not defined".format(name));
+			}
+			writef("\tmov eax, DWORD[rbp-%d]\n", (p+1)*8);
 		}
 		override string toString() {
 			return name;
@@ -114,6 +151,7 @@ class FunctionAst : Ast {
 	public:
 		/// functions: management all functions (*currently*, all function is in global scope)
 		static FunctionAst[string] functions;
+		static Env vars;
 
 		string name;
 		BlockAst block;
@@ -127,11 +165,14 @@ class FunctionAst : Ast {
 			functions[name] = this;
 		}
 		override void emit() {
+			auto preEnv = vars.dup;
+			vars = [];
 			writef("%s:\n", name);
 			foreach (stmt; block.stmts) {
 				stmt.emit();
 			}
 			write("\tret\n");
+			vars = preEnv;
 		}
 		override string toString() {
 			return "(func %s %s)".format(name, block);

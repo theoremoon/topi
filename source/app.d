@@ -1,4 +1,5 @@
 import std.stdio;
+import std.conv;
 import topi;
 
 
@@ -32,12 +33,16 @@ void main(string[] args)
 		stmts ~= stmt;
 	}
 	if (args.length > 1 && args[1] == "-a") {
+		char[] buf = [];
 		foreach(func; FunctionAst.functions) {
-			write(func);
+			buf ~= func.to!string;
+			buf ~= " ";
 		}
 		foreach(stmt; stmts) {
-			write(stmt);
+			buf ~= stmt.to!string;
+			buf ~= " ";
 		}
+		write(buf[0..$-1]);
 	}
 	else {
 		emit_nasm_head();
