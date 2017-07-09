@@ -40,6 +40,6 @@ if [ $? -ne 0 ]; then
 	exit
 fi
 
-test '1000' '1000'
-test '10a' '10'
-test '0123' '123'
+test '1+1' '2'
+test '1+2' '3'
+test '100+1' '101'
