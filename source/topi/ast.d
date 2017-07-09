@@ -108,3 +108,48 @@ class BinopAst : Ast {
 			return buf.to!string;
 		}
 }
+
+/// FunctionAst: definition of function
+class FunctionAst : Ast {
+	public:
+		/// functions: management all functions (*currently*, all function is in global scope)
+		static FunctionAst[string] functions;
+
+		string name;
+		BlockAst block;
+		this(string name, BlockAst block) {
+			if ((name in functions) !is null) {
+				throw new Exception("Duplicated definition: function %s".format(name));
+			}
+			this.name = name;
+			this.block = block;
+
+			functions[name] = this;
+		}
+		override void emit() {
+			writef("%s:\n", name);
+			foreach (stmt; block.stmts) {
+				stmt.emit();
+			}
+			write("\tret\n");
+		}
+		override string toString() {
+			return "(func %s %s)".format(name, block);
+		}
+
+}
+/// FunctionCallAst: function call expression
+class FunctionCallAst : Ast
+{
+	public:
+		string fname;
+		this(string fname) {
+			this.fname = fname;
+		}
+		override void emit() {
+			writef("\tcall %s\n", fname);
+		}
+		override string toString() {
+			return "(%s)".format(fname);
+		}
+}

@@ -5,9 +5,7 @@ import std.uni;
 import std.conv;
 import std.format;
 
-
-
-Ast read_identifier(Source src, dchar c) {
+IdentifierAst read_identifier(Source src, dchar c) {
 	dchar[] buf;
 	buf ~= c;
 	while (src.get(c)) {
@@ -19,7 +17,7 @@ Ast read_identifier(Source src, dchar c) {
 	}
 	return new IdentifierAst(buf.to!string);
 }
-Ast read_number(Source src, int n) {
+IntegerAst read_number(Source src, int n) {
 	dchar c;
 	while (src.get(c)) {
 		if (! c.isNumber) {
@@ -39,7 +37,15 @@ Ast read_factor(Source src) {
 		return src.read_number(c-'0');
 	}
 	if (c.isAlpha || c == '_') {
-		return src.read_identifier(c);
+		auto ident = src.read_identifier(c);
+		if (! src.get_with_skip(c)) {
+			return ident;
+		}
+		if (c == '(') {
+			return src.read_function_call(ident.name);
+		}
+		src.unget(c);
+		return ident;
 	}
 	if (c == '(') {
 		auto e = src.read_expr;
@@ -113,7 +119,7 @@ Ast read_stmt(Source src) {
 	}
 	return e;
 }
-Ast read_block(Source src) {
+BlockAst read_block(Source src) {
 	Ast[] asts;
 	while (true) {
 		dchar c;
@@ -126,4 +132,51 @@ Ast read_block(Source src) {
 		src.unget(c);
 		asts ~= src.read_stmt;
 	}
+}
+Ast read_toplevel(Source src) {
+	dchar c;
+	if (! src.get_with_skip(c)) {
+		return null;
+	}
+	if (c.isAlpha || c == '_') {
+		IdentifierAst ident = src.read_identifier(c);
+		if (ident) {
+			if (ident.name == "Func") {
+				return src.read_function;
+			}
+			foreach_reverse (dchar c2; ident.name) {
+				src.unget(c2);
+			}
+		}
+		else {
+			src.unget(c);
+		}
+	}
+	else {
+		src.unget(c);
+	}
+	return src.read_stmt;
+}
+Ast read_function(Source src) {
+	dchar c;
+	if (! src.get_with_skip(c)) {
+		throw new Exception("Function name is expected");
+	}
+	if (!c.isAlpha && c != '_') {
+		throw new Exception("Alphabet or underscore '_' is expected but got '%c'".format(c));
+	}
+	IdentifierAst name = src.read_identifier(c);
+
+	if (! src.expect_with_skip(['{'])) {
+		throw new Exception("{ is expected");
+	}
+	BlockAst block = src.read_block;
+	
+	return new FunctionAst(name.name, block);
+}
+FunctionCallAst read_function_call(Source src, string fname) {
+	if (!src.expect_with_skip([')'])) {
+		throw new Exception(") is expected");
+	}
+	return new FunctionCallAst(fname);
 }

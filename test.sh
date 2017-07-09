@@ -31,7 +31,7 @@ function testast {
 	fi
 
 	if [ "$ast" != "$2" ]; then
-		echo "Expected $2 but got $ast"
+		echo "Expected $2 but got $ast ($1)"
 		exit
 	fi
 
@@ -39,7 +39,7 @@ function testast {
 }
 
 function test {
-	compile $1
+	compile "$1"
 	r=`./$bin`
 	
 	if [ "$r" != "$2" ]; then
@@ -64,6 +64,7 @@ testast '1;2+3;' '1(+ 2 3)'
 testast 'a;' 'a'
 testast '1+abc;' '(+ 1 abc)'
 testast '{1; 2; 3; {1+2;}}' '{1 2 3 {(+ 1 2)}}'
+testast 'Func tako{1+2;}tako();' '(func tako {(+ 1 2)})(tako)'
 
 test '1;' '1'
 test '1+1;' '2'
@@ -74,4 +75,6 @@ test '1+2*3+4;' '11'
 test '1*2+3*4;' '14'
 test '(1+2)*3+4;' '13'
 test '1;2+3;4*5+6;' '26'
+test "Func tako{1;2*3;} tako()+1;" '7'
 
+echo "ALL TEST PASSED" 
