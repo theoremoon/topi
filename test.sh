@@ -1,5 +1,5 @@
-
-compiler=topi
+#!/bin/bash
+compiler='./topi'
 asm='tmp.asm'
 obj='tmp.o'
 bin='tmp.out'
@@ -25,7 +25,7 @@ function compile {
 
 function test {
 	compile $1
-	r=$bin	
+	r=`./$bin`
 	
 	if [ "$r" != "$2" ]; then
 		echo "Expected $2 but got $r"
@@ -41,3 +41,5 @@ if [ $? -ne 0 ]; then
 fi
 
 test '1000' '1000'
+test '10a' '10'
+test '0123' '123'
