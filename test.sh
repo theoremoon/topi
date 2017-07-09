@@ -23,6 +23,21 @@ function compile {
 	fi
 }
 
+function testast {
+	ast=`echo $1 | $compiler -a`
+	if [ $? -ne 0 ]; then
+		echo "Failed to Output AST of $1"
+		exit
+	fi
+
+	if [ "$ast" != "$2" ]; then
+		echo "Expected $2 but got $ast"
+		exit
+	fi
+
+	echo "test passed $1 => $2"
+}
+
 function test {
 	compile $1
 	r=`./$bin`
@@ -40,6 +55,14 @@ if [ $? -ne 0 ]; then
 	exit
 fi
 
+testast '1' '1'
+testast '1+2' '(+ 1 2)'
+testast '3-2' '(- 3 2)'
+testast '1+2*3' '(+ 1 (* 2 3))'
+testast '(1+2)*3' '(* (+ 1 2) 3)'
+
+
+test '1' '1'
 test '1+1' '2'
 test '2-1' '1'
 test '100' '100'

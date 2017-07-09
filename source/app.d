@@ -1,4 +1,5 @@
 import std.stdio;
+import std.conv;
 import std.format;
 import core.stdc.stdio : ungetc, getc;
 import std.uni;
@@ -20,6 +21,10 @@ class IntegerAst : Ast {
 		/// emit: set value to rax
 		override void emit() {
 			writef("\tmov rax, %d\n", v);
+		}
+
+		override string toString() {
+			return v.to!string;
 		}
 }
 
@@ -57,6 +62,11 @@ class BinopAst : Ast {
 				return;
 			}
 			throw new Exception("Unknwon operator '%c'".format(op));
+		}
+		override string toString() {
+			char[] buf;
+			buf ~= "(%c %s %s)".format(op, left, right);
+			return buf.to!string;
 		}
 }
 
@@ -192,12 +202,17 @@ void emit_nasm_foot() {
 }
 
 
-void main()
+void main(string[] args)
 {
 	Source src = new Source(stdin);
-	auto binop = src.read_expr;
+	auto expr = src.read_expr;
 
-	emit_nasm_head();
-	binop.emit();
-	emit_nasm_foot();
+	if (args.length > 1 && args[1] == "-a") {
+		writeln(expr);
+	}
+	else {
+		emit_nasm_head();
+		expr.emit();
+		emit_nasm_foot();
+	}
 }
