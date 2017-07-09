@@ -35,12 +35,21 @@ class BinopAst : Ast {
 		}
 		override void emit() {
 			if (op == '+') {
-				this.left.emit;
+				this.right.emit;
 				write("\tpush rax\n");
 				write("\tpop rbx\n");
-				this.right.emit;
+				this.left.emit;
 				
 				write("\tadd rax, rbx\n");
+				return;
+			}
+			else if (op == '-') {
+				this.right.emit;
+				write("\tpush rax\n");
+				write("\tpop rbx\n");
+				this.left.emit;
+				
+				write("\tsub rax, rbx\n");
 				return;
 			}
 			throw new Exception("Unknwon operator '%c'".format(op));
