@@ -7,7 +7,6 @@ import topi;
 
 void emit_nasm_head() {
 	write("bits 64\n",
-		"global _func\n",
 		"section .text\n");
 }
 
@@ -26,14 +25,13 @@ void main(string[] args)
 		}
 		stmts ~= stmt;
 	}
+	auto mainFunc = new FunctionAst("_func", [], new BlockAst(stmts));
+	FunctionAst.functions["_func"] = mainFunc;
+
 	if (args.length > 1 && args[1] == "-a") {
 		char[] buf = [];
 		foreach(func; FunctionAst.functions) {
 			buf ~= func.to!string;
-			buf ~= " ";
-		}
-		foreach(stmt; stmts) {
-			buf ~= stmt.to!string;
 			buf ~= " ";
 		}
 		write(buf[0..$-1]);
@@ -46,8 +44,5 @@ void main(string[] args)
 		foreach(func; FunctionAst.functions) {
 			func.emit();
 		}
-
-		auto mainFunc = new FunctionAst("_func", [], new BlockAst(stmts));
-		mainFunc.emit;
 	}
 }
