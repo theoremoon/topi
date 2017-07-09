@@ -61,6 +61,8 @@ testast '3-2;' '(- 3 2)'
 testast '1+2*3;' '(+ 1 (* 2 3))'
 testast '(1+2)*3;' '(* (+ 1 2) 3)'
 testast '1;2+3;' '1(+ 2 3)'
+testast 'a;' 'a'
+testast '1+abc;' '(+ 1 abc)'
 
 test '1;' '1'
 test '1+1;' '2'

@@ -10,6 +10,20 @@ class Ast {
 	abstract void emit();
 }
 
+class IdentifierAst : Ast {
+	public:
+		string name;
+		this(string name) {
+			this.name = name;
+		}
+		override void emit() {
+			throw new Exception("IdentifierAst is not emittable");
+		}
+		override string toString() {
+			return name;
+		}
+}
+
 /// IntegerAst: integer type
 class IntegerAst : Ast {
 	public:

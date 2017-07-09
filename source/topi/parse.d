@@ -2,10 +2,23 @@ module topi.parse;
 
 import topi;
 import std.uni;
+import std.conv;
 import std.format;
 
 
 
+Ast read_identifier(Source src, dchar c) {
+	dchar[] buf;
+	buf ~= c;
+	while (src.get(c)) {
+		if (! c.isAlphaNum && c != '_') {
+			src.unget(c);
+			break;
+		}
+		buf ~= c;
+	}
+	return new IdentifierAst(buf.to!string);
+}
 Ast read_number(Source src, int n) {
 	dchar c;
 	while (src.get(c)) {
@@ -24,6 +37,9 @@ Ast read_factor(Source src) {
 	}
 	if (c.isNumber) {
 		return src.read_number(c-'0');
+	}
+	if (c.isAlpha || c == '_') {
+		return src.read_identifier(c);
 	}
 	if (c == '(') {
 		auto e = src.read_expr;
