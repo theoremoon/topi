@@ -199,34 +199,43 @@ Ast read_toplevel(Source src) {
 	}
 	return src.read_stmt;
 }
+DeclarationAst read_declaration(Source src) {
+	auto type = src.read_identifier;
+	if (! type) {
+		return null;
+	}
+	if (type.name != "Int") {
+		src.unget(type.name);
+		return null;
+	}
+	auto name = src.read_identifier;
+	if (!name) {
+		throw new Exception("variabel name is required");
+	}
+	return new DeclarationAst(type.name, name.name);
+}
 Ast read_function(Source src) {
-	dchar c;
-	if (! src.get_with_skip(c)) {
-		throw new Exception("Function name is expected");
-	}
-	if (!c.isFirstChar) {
-		throw new Exception("Alphabet or underscore '_' is expected but got '%c'".format(c));
-	}
-	IdentifierAst name = src.read_identifier(c);
+	IdentifierAst name = src.read_identifier;
 	if (! name) {
 		throw new Exception("Function Name Required");
 	}
 	if (! src.expect_with_skip(['('])) {
 		throw new Exception("( is expected");
 	}
-	string[] args;
+	DeclarationAst[] args;
 	while (true) {
-		auto arg = src.read_identifier;
+		auto arg = src.read_declaration;
 		if (! arg) {
 			if (args.length > 0) {
 				throw new Exception(") is expected");
 			}
-			if (!src.expect_with_skip([')'])) {
+			if (! src.expect_with_skip([')'])) {
 				throw new Exception(") is expected");
 			}
 			break;
 		}
-		args ~= arg.name;
+		args ~= arg;
+		dchar c;
 		if (!src.get_with_skip(c)) {
 			throw new Exception(", or ) is expected");
 		}

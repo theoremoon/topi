@@ -16,6 +16,23 @@ class Ast {
 	abstract void emit();
 }
 
+/// DeclarationAst : declrataion of arguments 
+class DeclarationAst : Ast {
+	public:
+		string type;
+		string name;
+		this(string type, string name) {
+			this.type = type;
+			this.name = name;
+		}
+		override void emit() {
+			throw new Exception("DeclarationAst is not emittable");
+		}
+		override string toString() {
+			return "%s:%s".format(type, name);
+		}
+}
+
 /// DefinitionAst : definition of variable like Int a = 10
 class DefinitionAst : Ast {
 	public:
@@ -158,9 +175,9 @@ class FunctionAst : Ast {
 		}
 
 		string name;
-		string[] args;
+		DeclarationAst[] args;
 		BlockAst block;
-		this(string name, string[] args, BlockAst block) {
+		this(string name, DeclarationAst[] args, BlockAst block) {
 			if ((name in functions) !is null) {
 				throw new Exception("Duplicated definition: function %s".format(name));
 			}
@@ -173,7 +190,9 @@ class FunctionAst : Ast {
 		override void emit() {
 			auto preEnv = vars.dup;
 			vars = [];
-			argvars = args;
+			foreach (arg; args) {
+				argvars ~= arg.name;
+			}
 			foreach (stmt; block.stmts) {
 				if (auto def = cast(DefinitionAst)stmt) {
 					if (search(def.name) != 0) {

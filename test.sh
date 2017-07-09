@@ -66,7 +66,7 @@ testast '1+abc;' '(+ 1 abc)'
 testast '{1; 2; 3; {1+2;}}' '{1 2 3 {(+ 1 2)}}'
 testast 'Func tako(){1+2;}tako();' '(func tako () {(+ 1 2)}) (tako)'
 testast 'Func tako(){Int a=10;a;} tako();' '(func tako () {(def a 10) a}) (tako)'
-testast 'Func add1(a){a+1;} add1(10);' '(func add1 (a) {(+ a 1)}) (add1 10)'
+testast 'Func add1(Int a){a+1;} add1(10);' '(func add1 (Int:a) {(+ a 1)}) (add1 10)'
 
 test '1;' '1'
 test '1+1;' '2'
@@ -80,6 +80,6 @@ test '1;2+3;4*5+6;' '26'
 test 'Func tako(){1;2*3;} tako()+1;' '7'
 test 'Func tako(){Int a=10;a;} tako();' '10'
 test 'Func tako(){Int a=10;Int b=20;a+b;} Int c=3;tako()+c;' '33'
-test 'Func add1(a){a+1;} add1(10);' '11'
+test 'Func add1(Int a){a+1;} add1(10);' '11'
 
 echo "ALL TEST PASSED" 
