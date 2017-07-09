@@ -63,6 +63,7 @@ testast '(1+2)*3;' '(* (+ 1 2) 3)'
 testast '1;2+3;' '1(+ 2 3)'
 testast 'a;' 'a'
 testast '1+abc;' '(+ 1 abc)'
+testast '{1; 2; 3; {1+2;}}' '{1 2 3 {(+ 1 2)}}'
 
 test '1;' '1'
 test '1+1;' '2'

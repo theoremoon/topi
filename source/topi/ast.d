@@ -10,6 +10,8 @@ class Ast {
 	abstract void emit();
 }
 
+/// IdentifierAst: identifier
+/// (this is available on source code only) 
 class IdentifierAst : Ast {
 	public:
 		string name;
@@ -39,6 +41,29 @@ class IntegerAst : Ast {
 
 		override string toString() {
 			return v.to!string;
+		}
+}
+
+/// BlockAst: block is { ... } which is collection of statements
+class BlockAst : Ast {
+	public:
+		Ast[] stmts;
+		this(Ast[] stmts) {
+			this.stmts = stmts;
+		}
+		override void emit() {
+			throw new Exception("Not Implemented yet");
+		}
+		override string toString() {
+			char[] buf;
+			buf ~= "{";
+			foreach(stmt; stmts) {
+				buf ~= stmt.to!string;
+				buf ~= " ";
+			}
+			buf = buf[0..$-1];
+			buf ~= "}";
+			return cast(string)buf;
 		}
 }
 

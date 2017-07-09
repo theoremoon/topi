@@ -96,6 +96,14 @@ Ast read_expr(Source src) {
 	return new BinopAst(c, t1, t2);
 }
 Ast read_stmt(Source src) {
+	dchar c;
+	if (! src.get_with_skip(c)) {
+		return null;
+	}
+	if (c == '{') {
+		return src.read_block;
+	}
+	src.unget(c);
 	auto e = src.read_expr;
 	if (!e ) {
 		return null;
@@ -104,4 +112,18 @@ Ast read_stmt(Source src) {
 		throw new Exception("Expression should end with ; or \\n");
 	}
 	return e;
+}
+Ast read_block(Source src) {
+	Ast[] asts;
+	while (true) {
+		dchar c;
+		if (! src.get_with_skip(c)) {
+			throw new Exception("Unclosed {} brace");
+		}
+		if (c == '}') {
+			return new BlockAst(asts);
+		}
+		src.unget(c);
+		asts ~= src.read_stmt;
+	}
 }
