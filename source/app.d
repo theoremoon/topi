@@ -81,6 +81,18 @@ class Source {
 			c = a;
 			return 1;
 		}
+		uint skip_space() {
+			uint cnt = 0;
+			dchar c;
+			while (get(c)) {
+				if (!c.isWhite) {
+					unget(c);
+					break;
+				}
+				cnt++;
+			}
+			return cnt;
+		}
 
 		void unget(dchar c) {
 			buf ~= c;
@@ -100,12 +112,17 @@ Ast read_number(Source src, int n) {
 }
 Ast read_expr(Source src) {
 	dchar c;
+	src.skip_space();
 	src.get(c);
 	auto left = src.read_number(c-'0');
 
 	dchar op;
-	src.get(op);
+	src.skip_space();
+	if (! src.get(op)) {
+		return left;
+	}
 
+	src.skip_space();
 	src.get(c);
 	auto right = src.read_number(c-'0');
 
