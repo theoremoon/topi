@@ -114,6 +114,28 @@ class Source {
 		void unget(dchar c) {
 			buf ~= c;
 		}
+		bool expect(dchar c) {
+			dchar d;
+			if (!get(d)) {
+				return false;
+			}
+			return c == d;
+		}
+		bool expect_with_skip(dchar[] cs) {
+			dchar d;
+			while (get(d)) {
+				foreach (c; cs) {
+				if (c == d) {
+					return true;
+				}
+				}
+				if (!d.isWhite) {
+					unget(d);
+					return false;
+				}
+			}
+			return false;
+		}
 }
 
 
@@ -190,6 +212,16 @@ Ast read_expr(Source src) {
 	}
 	return new BinopAst(c, t1, t2);
 }
+Ast read_stmt(Source src) {
+	auto e = src.read_expr;
+	if (!e ) {
+		return null;
+	}
+	if (! src.expect_with_skip([' ', ';'])) {
+		throw new Exception("Expression should end with ; or \\n");
+	}
+	return e;
+}
 
 void emit_nasm_head() {
 	write("bits 64\n",
@@ -205,14 +237,25 @@ void emit_nasm_foot() {
 void main(string[] args)
 {
 	Source src = new Source(stdin);
-	auto expr = src.read_expr;
+	Ast[] stmts;
+	while (true) {
+		auto stmt = src.read_stmt;
+		if (!stmt) {
+			break;
+		}
+		stmts ~= stmt;
+	}
 
 	if (args.length > 1 && args[1] == "-a") {
-		writeln(expr);
+		foreach(stmt; stmts) {
+			write(stmt);
+		}
 	}
 	else {
 		emit_nasm_head();
-		expr.emit();
+		foreach(stmt; stmts) {
+			stmt.emit();
+		}
 		emit_nasm_foot();
 	}
 }
