@@ -29,10 +29,6 @@ class DefinitionAst : Ast {
 			this.value = value;
 		}	
 		override void emit() {
-			if (FunctionAst.vars.search(name) != -1) {
-				throw new Exception("variable %s is already defined".format(name));
-			}
-			FunctionAst.vars ~= name;
 			auto p = FunctionAst.vars.search(name);
 			
 			value.emit;
@@ -167,9 +163,25 @@ class FunctionAst : Ast {
 		override void emit() {
 			auto preEnv = vars.dup;
 			vars = [];
+			foreach (stmt; block.stmts) {
+				if (auto def = cast(DefinitionAst)stmt) {
+					if (vars.search(def.name) != -1) {
+						throw new Exception("variable %s is already defined".format(def.name));
+					}
+					vars ~= def.name;
+				}
+			}
 			writef("%s:\n", name);
+			if (vars.length > 0) {
+				write("\tpush rbp\n");
+				write("\tmov rbp, rsp\n");
+				writef("\tsub rsp, %d\n", vars.length*8);
+			}
 			foreach (stmt; block.stmts) {
 				stmt.emit();
+			}
+			if (vars.length > 0) {
+				write("\tleave\n");
 			}
 			write("\tret\n");
 			vars = preEnv;

@@ -10,12 +10,6 @@ void emit_nasm_head() {
 		"global _func\n",
 		"section .text\n");
 }
-void emit_main_head() {
-	write("_func:\n");
-}
-void emit_main_foot() {
-	write("\tret\n");
-}
 
 
 void main(string[] args)
@@ -53,10 +47,7 @@ void main(string[] args)
 			func.emit();
 		}
 
-		emit_main_head();
-		foreach(stmt; stmts) {
-			stmt.emit();
-		}
-		emit_main_foot();
+		auto mainFunc = new FunctionAst("_func", new BlockAst(stmts));
+		mainFunc.emit;
 	}
 }

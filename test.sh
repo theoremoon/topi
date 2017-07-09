@@ -78,5 +78,6 @@ test '(1+2)*3+4;' '13'
 test '1;2+3;4*5+6;' '26'
 test 'Func tako{1;2*3;} tako()+1;' '7'
 test 'Func tako{Int a=10;a;} tako();' '10'
+test 'Func tako{Int a=10;Int b=20;a+b;} Int c=3;tako()+c;' '33'
 
 echo "ALL TEST PASSED" 
