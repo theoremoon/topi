@@ -78,7 +78,7 @@ Ast read_expr(Source src, int p = -1) {
 		}
 		auto right = src.read_expr(priority);
 		if (! right) {
-			throw new Exception("Right hand expression is required");
+			throw new Exception("Right hand expression is required. left:%s, op:%s".format(left, op));
 		}
 		left = new BinopAst(op.str, left, right);
 	}
@@ -111,6 +111,20 @@ Ast read_stmt(Source src) {
 			throw new Exception("Expression should end with ; or \\n");
 		}
 		return new DefinitionAst(tok.str, ident.str, v);
+	}
+	if (tok.str == "if") {
+		auto cond = src.read_expr;
+		if (!cond) {
+			throw new Exception("Condition required");
+		}
+		if (! src.next('{')) {
+			throw new Exception("Block rquired");
+		}
+		auto block = src.read_block;
+		if (!block) {
+			throw new Exception("Block rquired");
+		}
+		return new IfAst(cond, block);
 	}
 	src.unget(tok);
 	auto e = src.read_expr;

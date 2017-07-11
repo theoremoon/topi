@@ -114,6 +114,33 @@ class BlockAst : Ast {
 			return cast(string)buf;
 		}
 }
+class IfAst : Ast {
+	public:
+		static uint iflabel;
+		static this() {
+			this.iflabel = 0;
+		}
+
+		Ast cond;
+		BlockAst block;
+		this(Ast cond, BlockAst block) {
+			this.cond = cond;
+			this.block = block;
+		}
+		override void emit() {
+			string label = "iflabel%d".format(this.iflabel);
+			cond.emit;
+			writef("\tjne %s\n", label);
+			foreach (stmt; block.stmts) {
+				stmt.emit();
+			}
+			writef("%s:\n", label);
+			this.iflabel++;
+		}
+		override string toString() {
+			return "(if %s %s)".format(cond, block);
+		}
+}
 
 /// BinopAst: Ast of Binary operator like +, -, ... 
 class BinopAst : Ast {
@@ -140,6 +167,9 @@ class BinopAst : Ast {
 					return;
 				case "*":
 					write("\timul rbx\n");
+					return;
+				case "==":
+					write("\tcmp rax,rbx\n");
 					return;
 				default:
 					break;

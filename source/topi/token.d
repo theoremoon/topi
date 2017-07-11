@@ -14,4 +14,7 @@ class Token {
 			this.type = type;
 			this.str = str;
 		}
+		override string toString() {
+			return str;
+		}
 }

@@ -39,10 +39,13 @@ class Source {
 			return false;
 		}
 		void unget(Token t) {
-			unget(t.str);
+			if (t) {
+				unget(t.str);
+			}
 		}
 		Token get() {
 			Token tok;
+			skip_space;
 			tok = read_number;
 			if (tok) {
 				return tok;
@@ -109,13 +112,14 @@ class Source {
 				case ',':
 					return new Token(Token.Type.SYMBOL, c.to!string);
 				case '=':
-					if (!get(c)) {
+					dchar c2;
+					if (!get(c2)) {
 						return new Token(Token.Type.SYMBOL, "=");
 					}
-					if (c == '=') {
+					if (c2 == '=') {
 						return new Token(Token.Type.SYMBOL, "==");
 					}
-					unget(c);
+					unget(c2);
 					return new Token(Token.Type.SYMBOL, "=");
 				default:
 					break;
