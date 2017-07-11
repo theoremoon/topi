@@ -119,8 +119,8 @@ class BlockAst : Ast {
 class BinopAst : Ast {
 	public:
 		Ast left, right;
-		dchar op;
-		this(dchar op, Ast left, Ast right) {
+		string op;
+		this(string op, Ast left, Ast right) {
 			this.left = left;
 			this.right = right;
 			this.op = op;
@@ -129,30 +129,26 @@ class BinopAst : Ast {
 			this.left.emit;
 			write("\tpush rax\n");
 			this.right.emit;
-			write("\tpush rax\n");
-			if (op == '+') {
-				write("\tpop rbx\n");
-				write("\tpop rax\n");
-				write("\tadd rax, rbx\n");
-				return;
+			write("\tmov rbx, rax\n");
+			write("\tpop rax\n");
+			switch (op) {
+				case "+":
+					write("\tadd rax, rbx\n");
+					return;
+				case "-":
+					write("\tsub rax, rbx\n");
+					return;
+				case "*":
+					write("\timul rbx\n");
+					return;
+				default:
+					break;
 			}
-			else if (op == '-') {
-				write("\tpop rbx\n");
-				write("\tpop rax\n");
-				write("\tsub rax, rbx\n");
-				return;
-			}
-			else if (op == '*') {
-				write("\tpop rbx\n");
-				write("\tpop rax\n");
-				write("\timul rbx\n");
-				return;
-			}
-			throw new Exception("Unknwon operator '%c'".format(op));
+			throw new Exception("Unknwon operator '%s'".format(op));
 		}
 		override string toString() {
 			char[] buf;
-			buf ~= "(%c %s %s)".format(op, left, right);
+			buf ~= "(%s %s %s)".format(op, left, right);
 			return buf.to!string;
 		}
 }

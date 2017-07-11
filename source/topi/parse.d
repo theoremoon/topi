@@ -6,188 +6,118 @@ import std.conv;
 import std.range;
 import std.format;
 
-bool isFirstChar(dchar c) {
-	return (c.isAlpha || c == '_');
-}
-bool isIdentChar(dchar c) {
-	return c.isAlphaNum || c == '_';
-}
-
-
-/// read_identifier: read identifier or return null with read nothing
-IdentifierAst read_identifier(Source src) {
-	dchar c;
-	if (!src.get_with_skip(c)) {
-		return null;
-	}
-	if (c.isFirstChar) {
-		return src.read_identifier(c);
-	}
-	src.unget(c);
-	return null;
-}
-
-/// read_identifier: read_identifier which begin from c or throw exception
-IdentifierAst read_identifier(Source src, dchar c) {
-	dchar[] buf;
-	buf ~= c;
-	while (src.get(c)) {
-		if (! c.isIdentChar) {
-			src.unget(c);
-			break;
-		}
-		buf ~= c;
-	}
-	return new IdentifierAst(buf.to!string);
-}
-
-/// read_number: read decimal number which begin from n
-IntegerAst read_number(Source src, int n) {
-	dchar c;
-	while (src.get(c)) {
-		if (! c.isNumber) {
-			src.unget(c);
-			break;
-		}
-		n = n*10 + (c-'0');
-	}
-	return new IntegerAst(n);
-}
 
 /// read_factor: read factor (number or identifier or  function call or (expr)) or return null
 Ast read_factor(Source src) {
-	dchar c;
-	if (! src.get_with_skip(c)) {
+	auto tok = src.get;
+	if (! tok) {
 		return null;
 	}
-
-	// Number
-	if (c.isNumber) {
-		return src.read_number(c-'0');
+	final switch (tok.type) {
+		case Token.Type.INT:
+			return new IntegerAst(tok.str.to!int);
+		case Token.Type.IDENT:
+			if (src.next('(')) {
+				return src.read_function_call(tok.str);
+			}
+			return new IdentifierAst(tok.str);
+		case Token.Type.SYMBOL:
+			if (tok.str == "(") {
+				auto e = src.read_expr;
+				if (! e) {
+					throw new Exception("Meaningless parentheses");
+				}
+				if (! src.next(')')) {
+					throw new Exception("')' is expected but %s got".format(src.get.str));
+				}
+				return e;
+			}
+			break;
 	}
-
-	// Identifier
-	if (c.isFirstChar) {
-		auto ident = src.read_identifier(c);
-		if (! src.get_with_skip(c)) {
-			return ident;
-		}
-
-		// calling function
-		if (c == '(') {
-			return src.read_function_call(ident.name);
-		}
-		src.unget(c);
-		return ident;
-	}
-
-	// ( expr )
-	if (c == '(') {
-		auto e = src.read_expr;
-		if (! e) {
-			throw new Exception("Meaningless parentheses");
-		}
-		if (! src.get_with_skip(c)) {
-			throw new Exception("Unterminated parentheses");
-		}
-		if (c != ')') {
-			throw new Exception("')' is expected but got '%c'".format(c));
-		}
-		return e;
-
-	}
-
-	// unknown character
-	src.unget(c);
+	src.unget(tok);
 	return null;
 }
-
-/// read_term: read term ( factor or factor * term ) or return null
-Ast read_term(Source src) {
-	auto f1 = src.read_factor;
-	if (! f1) {
-		return null;
+int get_priority(Token op) {
+	switch (op.str) {
+		case "=":
+			return 1;
+		case "==":
+			return 2;
+		case "+": case "-":
+			return 3;
+		case "*":
+			return 4;
+		default:
+			break;
 	}
-	dchar c;
-	if (! src.get_with_skip(c)) {
-		return f1;
-	}
-	if (c != '*') {
-		src.unget(c);
-		return f1;
-	}
-	auto f2 = src.read_term;
-	if (! f2) {
-		throw new Exception("Incomplete term");
-	}
-	return new BinopAst(c, f1, f2);
+	return 0;
 }
 
-/// read_expr: read expression ( term or term +- expr)  or return null
-Ast read_expr(Source src) {
-	auto t1 = src.read_term;
-	if (!t1) {
+/// read_expr: read expression or return null
+Ast read_expr(Source src, int p = -1) {
+	// left hand
+	auto left = src.read_factor;
+	if (! left) {
 		return null;
 	}
-	dchar c;
-	if (! src.get_with_skip(c)) {
-		return t1;
+
+	while (true) {
+		// operator (or return left)
+		auto op = src.get;
+		if (! op) {
+			break;
+		}
+		if (op.type != Token.Type.SYMBOL) {
+			src.unget(op);
+			break;
+		}
+		int priority = op.get_priority;
+		if (priority == 0 || priority <= p) {
+			src.unget(op);
+			break;
+		}
+		auto right = src.read_expr(priority);
+		if (! right) {
+			throw new Exception("Right hand expression is required");
+		}
+		left = new BinopAst(op.str, left, right);
 	}
-	if (c != '+' && c != '-') {
-		src.unget(c);
-		return t1;
-	}
-	auto t2 = src.read_expr;
-	if (!t2) {
-		throw new Exception("Incomplete expr");
-	}
-	return new BinopAst(c, t1, t2);
+	return left;
 }
+
 
 /// read_stmt: read statement( {...} or expr\n or definition ) or return null
 Ast read_stmt(Source src) {
-	dchar c;
-	if (! src.get_with_skip(c)) {
+	auto tok = src.get;
+	if (! tok) {
 		return null;
 	}
-	if (c == '{') {
+	if (tok.str == "{") {
 		return src.read_block;
 	}
-
-	// definition?
-	if (c.isFirstChar) {
-		auto type = src.read_identifier(c);
-
-		// definition
-		if (type.name == "Int") {
-			auto ident = src.read_identifier;
-			if (! ident) {
-				throw new Exception("Identifier expected");
-			}
-			if (! src.expect_with_skip(['='])) {
-				throw new Exception("= is required");
-			}
-			auto value = src.read_expr;
-			if (! value) {
-				throw new Exception("Expression expected");
-			}
-			if (! src.expect_with_skip([' ', ';'])) {
-				throw new Exception("Expression should end with ; or \\n");
-			}
-			return new DefinitionAst(type.name, ident.name, value);
+	if (tok.str == "Int") {
+		auto ident = src.get;
+		if (!ident || ident.type != Token.Type.IDENT) {
+			throw new Exception("Identifier expected");
 		}
-		else {
-			src.unget(type.name);
+		if (!src.next('=')) {
+			throw new Exception("= is required");
 		}
+		auto v = src.read_expr;
+		if (!v) {
+			throw new Exception("Expression expected");
+		}
+		if (!src.next('\n') && !src.next(';')) {
+			throw new Exception("Expression should end with ; or \\n");
+		}
+		return new DefinitionAst(tok.str, ident.str, v);
 	}
-	else {
-		src.unget(c);
-	}
+	src.unget(tok);
 	auto e = src.read_expr;
-	if (!e ) {
+	if (!e) {
 		return null;
 	}
-	if (! src.expect_with_skip([' ', ';'])) {
+	if (!src.next('\n') && !src.next(';')) {
 		throw new Exception("Expression should end with ; or \\n");
 	}
 	return e;
@@ -196,85 +126,65 @@ Ast read_stmt(Source src) {
 BlockAst read_block(Source src) {
 	Ast[] asts;
 	while (true) {
-		dchar c;
-		if (! src.get_with_skip(c)) {
-			throw new Exception("Unclosed {} brace");
-		}
-		if (c == '}') {
+		if (src.next('}')) {
 			return new BlockAst(asts);
 		}
-		src.unget(c);
 		asts ~= src.read_stmt;
 	}
 }
 
 /// read_toplevel: read toplevel element: function definition or statements or null
 Ast read_toplevel(Source src) {
-	dchar c;
-	if (! src.get_with_skip(c)) {
+	auto tok = src.get;
+	if (! tok) {
 		return null;
 	}
-	if (c.isAlpha || c == '_') {
-		IdentifierAst ident = src.read_identifier(c);
-		if (ident) {
-			if (ident.name == "Func") {
-				return src.read_function;
-			}
-			src.unget(ident.name);
-		}
-		else {
-			src.unget(c);
-		}
+	if (tok.type == Token.Type.IDENT && tok.str == "Func") {
+		return src.read_function;
 	}
-	else {
-		src.unget(c);
-	}
+	src.unget(tok);
 	return src.read_stmt;
 }
 
 /// read_declaration: read variable declrataion or return null
 DeclarationAst read_declaration(Source src) {
-	auto type = src.read_identifier;
+	auto type = src.get;
 	if (! type) {
 		return null;
 	}
-	if (type.name != "Int") {
-		src.unget(type.name);
+	if (type.type != Token.Type.IDENT || type.str != "Int") {
+		src.unget(type);
 		return null;
 	}
-	auto name = src.read_identifier;
+	auto name = src.get;
 	if (!name) {
 		throw new Exception("variabel name is required");
 	}
-	return new DeclarationAst(type.name, name.name);
+	return new DeclarationAst(type.str, name.str);
 }
 
 /// read_function_type: read function types
-IdentifierAst[] read_function_type(Source src) {
-	IdentifierAst[] types;
+string[] read_function_type(Source src) {
+	string[] types;
 	while (true) {
-		auto t = src.read_identifier;
-		if (!t) {
+		auto t = src.get;
+		if (!t || t.type != Token.Type.IDENT) {
 			if (types.length > 0) {
 				throw new Exception("type is expected");
 			}
-			if (! src.expect_with_skip([')'])) {
+			if (! src.next(')')) {
 				throw new Exception(") is expected");
 			}
 			break;
 		}
-		types ~= t;
-		dchar c;
-		if (!src.get_with_skip(c)) {
-			throw new Exception(", or ) is expected");
-		}
-		if (c == ',') {
+		types ~= t.str;
+		if (src.next(',')) {
 			continue;
 		}
-		if (c == ')') {
+		if (src.next(')')) {
 			break;
 		}
-		throw new Exception(", or ) is expected but got '%c'".format(c));
+		throw new Exception(", or ) is expected");
 	}
 	return types;
 }
@@ -282,53 +192,47 @@ IdentifierAst[] read_function_type(Source src) {
 /// read_function: read function definition or throw exception 
 Ast read_function(Source src) {
 	// read function type
-	dchar c;
-	if (!src.get_with_skip(c)) {
-		throw new Exception("Unexpected EOF.");
-	}
 	string[] argtypes;
-	if (c == '(') {
+	if (src.next('(')) {
 		foreach(t; src.read_function_type) {
-			argtypes ~= t.name;
+			argtypes ~= t;
 		}
 	}
-	else {
-		src.unget(c);
-	}
 		
-	IdentifierAst name = src.read_identifier;
-	if (! name) {
+	// read function name
+	auto name = src.get;
+	if (!name || name.type != Token.Type.IDENT) {
 		throw new Exception("Function Name Required");
 	}
-	if (! src.expect_with_skip(['('])) {
+	if (!src.next('(')) {
 		throw new Exception("( is expected");
 	}
 
 	// read arguments
 	string[] argnames;
 	while (true) {
-		auto arg = src.read_identifier;
-		if (! arg) {
+		auto arg = src.get;
+		if (!arg || arg.type != Token.Type.IDENT) {
+			if (arg) {
+				src.unget(arg);
+			}
 			if (argnames.length > 0) {
 				throw new Exception(") is expected");
 			}
-			if (! src.expect_with_skip([')'])) {
-				throw new Exception(") is expected");
+			if (!src.next(')')) {
+				throw new Exception(") is expected but %s got".format(src.get.str));
 			}
-			// no arguments ()
 			break;
 		}
-		argnames ~= arg.name;
-		if (!src.get_with_skip(c)) {
-			throw new Exception(", or ) is expected");
-		}
-		if (c == ',') {
+
+		argnames ~= arg.str;
+		if (src.next(',')) {
 			continue;
 		}
-		if (c == ')') {
+		if (src.next(')')) {
 			break;
 		}
-		throw new Exception(", or ) is expected but got '%c'".format(c));
+		throw new Exception(", or ) is expected");
 	}
 
 	if (argtypes.length != argnames.length) {
@@ -340,12 +244,12 @@ Ast read_function(Source src) {
 		args ~= new DeclarationAst(t, n);
 	}
 
-	if (! src.expect_with_skip(['{'])) {
+	if (!src.next('{')) {
 		throw new Exception("{ is expected");
 	}
 	BlockAst block = src.read_block;
 	
-	return new FunctionAst(name.name, args, block);
+	return new FunctionAst(name.str, args, block);
 }
 
 /// read_function_call: read calling function
@@ -357,23 +261,19 @@ FunctionCallAst read_function_call(Source src, string fname) {
 			if (args.length > 0) {
 				throw new Exception("Expression is expected");
 			}
-			if (!src.expect_with_skip([')'])) {
+			if (!src.next(')')) {
 				throw new Exception(") is expected");
 			}
 			break;
 		}
 		args ~= arg;
-		dchar c;
-		if (!src.get_with_skip(c)) {
-			throw new Exception(", or ) is expected");
-		}
-		if (c == ',') {
+		if (src.next(',')) {
 			continue;
 		}
-		if (c == ')') {
+		if (src.next(')')) {
 			break;
 		}
-		throw new Exception(", or ) is expected but got '%c'".format(c));
+		throw new Exception(", or ) is expected");
 	}
 	return new FunctionCallAst(fname, args);
 }

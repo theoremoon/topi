@@ -1,8 +1,18 @@
 module topi.source;
 
-import core.stdc.stdio : getc;
-import std.stdio;
+import topi;
 import std.uni;
+import std.conv;
+import std.stdio;
+import std.format;
+import core.stdc.stdio : getc;
+
+bool isFirstChar(dchar c) {
+	return (c.isAlpha || c == '_');
+}
+bool isIdentChar(dchar c) {
+	return c.isAlphaNum || c == '_';
+}
 
 /// Source: management source string
 class Source {
@@ -13,8 +23,106 @@ class Source {
 		alias f this;
 		this(File f) {
 			this.f = f;
+			buf = [];
+		}
+		bool next(dchar c) {
+			dchar c2;
+			while (get(c2)) {
+				if (c2 == c) {
+					return true;
+				}
+				if (!c2.isWhite) {
+					unget(c2);
+					break;
+				}
+			}
+			return false;
+		}
+		void unget(Token t) {
+			unget(t.str);
+		}
+		Token get() {
+			Token tok;
+			tok = read_number;
+			if (tok) {
+				return tok;
+			}
+			tok = read_identifier;
+			if (tok) {
+				return tok;
+			}
+			tok = read_symbol;
+			if (tok) {
+				return tok;
+			}
+			return null;
 		}
 
+	private:
+		/// read_number: read decimal number which begin from n
+		Token read_number() {
+			dchar c;
+			dchar[] buf;
+			while (get(c)) {
+				if (! c.isNumber) {
+					unget(c);
+					break;
+				}
+				buf ~= c;
+			}
+			if (buf.length == 0) {
+				return null;
+			}
+			return new Token(Token.Type.INT, buf.to!string);
+		}
+		/// read_identifier: read identifier or return null with read nothing
+		Token read_identifier() {
+			dchar c;
+			if (!get_with_skip(c)) {
+				return null;
+			}
+			if (c.isFirstChar) {
+				dchar[] buf;
+				buf ~= c;
+				while (get(c)) {
+					if (! c.isIdentChar) {
+						unget(c);
+						break;
+					}
+					buf ~= c;
+				}
+				return new Token(Token.Type.IDENT, buf.to!string);
+			}
+			unget(c);
+			return null;
+		}
+		Token read_symbol() {
+			dchar c;
+			if (!get_with_skip(c)) {
+				return null;
+			}
+			switch (c) {
+				case '+': case '-':
+				case '*':
+				case '(': case ')':
+				case '{': case '}':
+				case ',':
+					return new Token(Token.Type.SYMBOL, c.to!string);
+				case '=':
+					if (!get(c)) {
+						return new Token(Token.Type.SYMBOL, "=");
+					}
+					if (c == '=') {
+						return new Token(Token.Type.SYMBOL, "==");
+					}
+					unget(c);
+					return new Token(Token.Type.SYMBOL, "=");
+				default:
+					break;
+			}
+			unget(c);
+			return null;
+		}
 		/// get: get one character from source
 		uint get(ref dchar c) {
 			if (buf.length > 0) {
@@ -49,31 +157,9 @@ class Source {
 			buf ~= c;
 		}
 		void unget(string s) {
-			foreach_reverse (dchar c; s) {
+			foreach_reverse(c;s) {
 				unget(c);
 			}
-		}
-		bool expect(dchar c) {
-			dchar d;
-			if (!get(d)) {
-				return false;
-			}
-			return c == d;
-		}
-		bool expect_with_skip(dchar[] cs) {
-			dchar d;
-			while (get(d)) {
-				foreach (c; cs) {
-				if (c == d) {
-					return true;
-				}
-				}
-				if (!d.isWhite) {
-					unget(d);
-					return false;
-				}
-			}
-			return false;
 		}
 }
 
