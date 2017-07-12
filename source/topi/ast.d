@@ -1,7 +1,8 @@
 module topi.ast;
 
-import std.stdio;
 import std.conv;
+import std.range;
+import std.stdio;
 import std.format;
 import std.algorithm;
 
@@ -121,24 +122,49 @@ class IfAst : Ast {
 			this.iflabel = 0;
 		}
 
-		Ast cond;
-		BlockAst block;
-		this(Ast cond, BlockAst block) {
-			this.cond = cond;
-			this.block = block;
+		Ast[] conds;
+		BlockAst[] blocks;
+		BlockAst else_block;
+		this(Ast[] conds, BlockAst[] blocks, BlockAst else_block) {
+			if (conds.length != blocks.length) {
+				throw new Exception("internal error");
+			}
+			this.conds = conds;
+			this.blocks = blocks;
+			this.else_block = else_block;
 		}
 		override void emit() {
-			string label = "iflabel%d".format(this.iflabel);
-			cond.emit;
-			writef("\tjne %s\n", label);
-			foreach (stmt; block.stmts) {
-				stmt.emit();
+			string elabel = "iflabel%d".format(this.iflabel);
+			iflabel++;
+			foreach (c, b; zip(conds, blocks)) {
+				string label = "iflabel%d".format(this.iflabel);
+				this.iflabel++;
+				c.emit;
+				writef("\tjne %s\n", label);
+				foreach (stmt; b.stmts) {
+					stmt.emit();
+				}
+				writef("\tjmp %s\n", elabel);
+				writef("%s:\n", label);
 			}
-			writef("%s:\n", label);
-			this.iflabel++;
+			if (else_block) {
+				foreach (stmt; else_block.stmts) {
+					stmt.emit;
+				}
+			}
+			writef("%s:\n", elabel);
 		}
 		override string toString() {
-			return "(if %s %s)".format(cond, block);
+			char[] buf;
+			buf ~= "(cond";
+			foreach (c,b; zip(conds,blocks)) {
+				buf ~= " (%s %s)".format(c,b);
+			}
+			if (else_block) {
+				buf ~= " %s".format(else_block);
+			}
+			buf ~=")";
+			return cast(string)buf;
 		}
 }
 

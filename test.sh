@@ -68,7 +68,8 @@ testast 'Func tako(){1+2;}tako();' '(func tako () {(+ 1 2)}) (func _func () {(ta
 testast 'Func tako(){Int a=10;a;} tako();' '(func tako () {(def Int:a 10) a}) (func _func () {(tako)})'
 testast 'Func(Int) add1(a){a+1;} add1(10);' '(func add1 (Int:a) {(+ a 1)}) (func _func () {(add1 10)})'
 testast '1==1;' '(func _func () {(== 1 1)})'
-testast '0; if (1 == 1) { 1; }' '(func _func () {0 (if (== 1 1) {1})})'
+testast '0; if (1 == 1) { 1; }' '(func _func () {0 (cond ((== 1 1) {1}))})'
+testast '0; if (1 == 1) { 1; } elseif (1 == 2) { 2; } else { 3; }' '(func _func () {0 (cond ((== 1 1) {1}) ((== 1 2) {2}) {3})})'
 
 test '1;' '1'
 test '1+1;' '2'
@@ -84,5 +85,8 @@ test 'Func tako(){Int a=10;a;} tako();' '10'
 test 'Func tako(){Int a=10;Int b=20;a+b;} Int c=3;tako()+c;' '33'
 test 'Func(Int) add1(a){a+1;} add1(10);' '11'
 test '0; if (1 == 1) { 1; }' '1'
+test 'if 1==1 { 1; } elseif 1==2 { 2; } else { 3; }' '1'
+test 'if 1==2 { 1; } elseif 2==2 { 2; } else { 3; }' '2'
+test 'if 1==2 { 1; } elseif 1==2 { 2; } else { 3; }' '3'
 
 echo "ALL TEST PASSED" 

@@ -13,7 +13,7 @@ Ast read_factor(Source src) {
 	if (! tok) {
 		return null;
 	}
-	final switch (tok.type) {
+	switch (tok.type) {
 		case Token.Type.INT:
 			return new IntegerAst(tok.str.to!int);
 		case Token.Type.IDENT:
@@ -32,6 +32,8 @@ Ast read_factor(Source src) {
 				}
 				return e;
 			}
+			break;
+		default:
 			break;
 	}
 	src.unget(tok);
@@ -113,18 +115,61 @@ Ast read_stmt(Source src) {
 		return new DefinitionAst(tok.str, ident.str, v);
 	}
 	if (tok.str == "if") {
+		Ast[] conds;
+		BlockAst[] blocks;
+
+		// if 
 		auto cond = src.read_expr;
 		if (!cond) {
 			throw new Exception("Condition required");
 		}
 		if (! src.next('{')) {
-			throw new Exception("Block rquired");
+			throw new Exception("Block required");
 		}
 		auto block = src.read_block;
 		if (!block) {
-			throw new Exception("Block rquired");
+			throw new Exception("Block require");
 		}
-		return new IfAst(cond, block);
+		conds ~= cond;
+		blocks ~= block;
+
+		// elseif
+		while (true) {
+			tok = src.get;
+			if (!(tok && tok.type == Token.Type.IDENT && tok.str == "elseif")) {
+				src.unget(tok);
+				break;
+			}
+			cond = src.read_expr;
+			if (!cond) {
+				throw new Exception("Condition required");
+			}
+			if (!src.next('{')) {
+				throw new Exception("Block required");
+			}
+			block = src.read_block;
+			if (!block) {
+				throw new Exception("Block required");
+			}
+			conds ~= cond;
+			blocks ~= block;
+		}
+
+		// else
+		tok = src.get;
+		if (!(tok && tok.type == Token.Type.IDENT && tok.str == "else")) {
+			src.unget(tok);
+			return new IfAst(conds, blocks, null);
+		}
+		if (!src.next('{')) {
+			throw new Exception("Block required");
+		}
+		block = src.read_block;
+		if (!block) {
+			throw new Exception("Block required");
+		}
+
+		return new IfAst(conds, blocks, block);
 	}
 	src.unget(tok);
 	auto e = src.read_expr;
