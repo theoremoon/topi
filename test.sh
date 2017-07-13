@@ -85,8 +85,7 @@ test 'Func tako(){Int a=10;a;} tako();' '10'
 test 'Func tako(){Int a=10;Int b=20;a+b;} Int c=3;tako()+c;' '33'
 test 'Func(Int) add1(a){a+1;} add1(10);' '11'
 test '0; if (1 == 1) { 1; }' '1'
-test 'if 1==1 { 1; } elseif 1==2 { 2; } else { 3; }' '1'
-test 'if 1==2 { 1; } elseif 2==2 { 2; } else { 3; }' '2'
-test 'if 1==2 { 1; } elseif 1==2 { 2; } else { 3; }' '3'
-
+test 'Int a=1;if a==1 { 1; } elseif a==2 { 2; } else { 3; }' '1'
+test 'Int a=2;if a==1 { 1; } elseif a==2 { 2; } else { 3; }' '2'
+test 'Int a=3;if a==1 { 1; } elseif a==2 { 2; } else { 3; }' '3'
 echo "ALL TEST PASSED" 
