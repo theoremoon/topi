@@ -17,7 +17,7 @@ Ast read_factor(Source src) {
 		case Token.Type.INT:
 			return new IntegerAst(tok.str.to!int);
 		case Token.Type.IDENT:
-			if (src.next('(')) {
+			if (src.next("(")) {
 				return src.read_function_call(tok.str);
 			}
 			return new IdentifierAst(tok.str);
@@ -27,7 +27,7 @@ Ast read_factor(Source src) {
 				if (! e) {
 					throw new Exception("Meaningless parentheses");
 				}
-				if (! src.next(')')) {
+				if (! src.next(")")) {
 					throw new Exception("')' is expected but %s got".format(src.get.str));
 				}
 				return e;
@@ -102,16 +102,14 @@ Ast read_stmt(Source src) {
 		if (!ident || ident.type != Token.Type.IDENT) {
 			throw new Exception("Identifier expected");
 		}
-		if (!src.next('=')) {
+		if (!src.next("=")) {
 			throw new Exception("= is required");
 		}
 		auto v = src.read_expr;
 		if (!v) {
 			throw new Exception("Expression expected");
 		}
-		if (!src.next('\n') && !src.next(';')) {
-			throw new Exception("Expression should end with ; or \\n");
-		}
+		src.next(";");
 		return new DefinitionAst(tok.str, ident.str, v);
 	}
 	if (tok.str == "if") {
@@ -123,7 +121,7 @@ Ast read_stmt(Source src) {
 		if (!cond) {
 			throw new Exception("Condition required");
 		}
-		if (! src.next('{')) {
+		if (! src.next("{")) {
 			throw new Exception("Block required");
 		}
 		auto block = src.read_block;
@@ -144,7 +142,7 @@ Ast read_stmt(Source src) {
 			if (!cond) {
 				throw new Exception("Condition required");
 			}
-			if (!src.next('{')) {
+			if (!src.next("{")) {
 				throw new Exception("Block required");
 			}
 			block = src.read_block;
@@ -161,7 +159,7 @@ Ast read_stmt(Source src) {
 			src.unget(tok);
 			return new IfAst(conds, blocks, null);
 		}
-		if (!src.next('{')) {
+		if (!src.next("{")) {
 			throw new Exception("Block required");
 		}
 		block = src.read_block;
@@ -176,16 +174,14 @@ Ast read_stmt(Source src) {
 	if (!e) {
 		return null;
 	}
-	if (!src.next('\n') && !src.next(';')) {
-		throw new Exception("Expression should end with ; or \\n");
-	}
+	src.next(";");
 	return e;
 }
 /// read_block: read block {...} collection of statements
 BlockAst read_block(Source src) {
 	Ast[] asts;
 	while (true) {
-		if (src.next('}')) {
+		if (src.next("}")) {
 			return new BlockAst(asts);
 		}
 		asts ~= src.read_stmt;
@@ -231,16 +227,16 @@ string[] read_function_type(Source src) {
 			if (types.length > 0) {
 				throw new Exception("type is expected");
 			}
-			if (! src.next(')')) {
+			if (! src.next(")")) {
 				throw new Exception(") is expected");
 			}
 			break;
 		}
 		types ~= t.str;
-		if (src.next(',')) {
+		if (src.next(",")) {
 			continue;
 		}
-		if (src.next(')')) {
+		if (src.next(")")) {
 			break;
 		}
 		throw new Exception(", or ) is expected");
@@ -252,7 +248,7 @@ string[] read_function_type(Source src) {
 Ast read_function(Source src) {
 	// read function type
 	string[] argtypes;
-	if (src.next('(')) {
+	if (src.next("(")) {
 		foreach(t; src.read_function_type) {
 			argtypes ~= t;
 		}
@@ -263,7 +259,7 @@ Ast read_function(Source src) {
 	if (!name || name.type != Token.Type.IDENT) {
 		throw new Exception("Function Name Required");
 	}
-	if (!src.next('(')) {
+	if (!src.next("(")) {
 		throw new Exception("( is expected");
 	}
 
@@ -278,17 +274,17 @@ Ast read_function(Source src) {
 			if (argnames.length > 0) {
 				throw new Exception(") is expected");
 			}
-			if (!src.next(')')) {
+			if (!src.next(")")) {
 				throw new Exception(") is expected but %s got".format(src.get.str));
 			}
 			break;
 		}
 
 		argnames ~= arg.str;
-		if (src.next(',')) {
+		if (src.next(",")) {
 			continue;
 		}
-		if (src.next(')')) {
+		if (src.next(")")) {
 			break;
 		}
 		throw new Exception(", or ) is expected");
@@ -303,7 +299,7 @@ Ast read_function(Source src) {
 		args ~= new DeclarationAst(t, n);
 	}
 
-	if (!src.next('{')) {
+	if (!src.next("{")) {
 		throw new Exception("{ is expected");
 	}
 	BlockAst block = src.read_block;
@@ -320,16 +316,16 @@ FunctionCallAst read_function_call(Source src, string fname) {
 			if (args.length > 0) {
 				throw new Exception("Expression is expected");
 			}
-			if (!src.next(')')) {
+			if (!src.next(")")) {
 				throw new Exception(") is expected");
 			}
 			break;
 		}
 		args ~= arg;
-		if (src.next(',')) {
+		if (src.next(",")) {
 			continue;
 		}
-		if (src.next(')')) {
+		if (src.next(")")) {
 			break;
 		}
 		throw new Exception(", or ) is expected");

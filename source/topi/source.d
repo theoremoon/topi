@@ -18,41 +18,41 @@ bool isIdentChar(dchar c) {
 class Source {
 	public:
 		dchar[] buf;
+		Token[] tbuf;
 		File f;
 
 		alias f this;
 		this(File f) {
 			this.f = f;
 			buf = [];
+			tbuf = [];
 		}
-		bool next(dchar c) {
-			dchar c2;
-			while (get(c2)) {
-				if (c2 == c) {
-					return true;
-				}
-				if (!c2.isWhite) {
-					unget(c2);
-					break;
-				}
+		bool next(string s) {
+			auto tok = get;
+			if (!tok)  {
+				return false;
 			}
+			if (tok.str == s) {
+				return true;
+			}
+			unget(tok);
 			return false;
 		}
 		void unget(Token t) {
-			if (t) {
-				if (t.type == Token.Type.STRING) {
-					unget('"');
-					unget(t.str);
-					unget('"');
-				}
-				else {
-					unget(t.str);
-				}
+			if (!t) {
+				return;
 			}
+			tbuf ~= t;
 		}
 		Token get() {
+			Token tok;
+			if (tbuf.length > 0) {
+				tok = tbuf[$-1];
+				tbuf = tbuf[0..$-1];
+				return tok;
+			}
 			skip_space;
-			auto tok = read_number;
+			tok = read_number;
 			if (tok) {
 				return tok;
 			}
@@ -147,6 +147,7 @@ String:		return null;
 				case '(': case ')':
 				case '{': case '}':
 				case ',':
+				case ';':
 					return new Token(Token.Type.SYMBOL, c.to!string);
 				case '=':
 					dchar c2;
