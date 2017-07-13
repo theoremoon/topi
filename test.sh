@@ -71,6 +71,7 @@ testast '1==1;' '(func _func () {(== 1 1)})'
 testast '0; if (1 == 1) { 1; }' '(func _func () {0 (cond ((== 1 1) {1}))})'
 testast '0; if (1 == 1) { 1; } elseif (1 == 2) { 2; } else { 3; }' '(func _func () {0 (cond ((== 1 1) {1}) ((== 1 2) {2}) {3})})'
 testast '"hello";' '(func _func () {"hello"})'
+testast '0 1 2 3' '(func _func () {0 1 2 3})'
 
 test '1;' '1'
 test '1+1;' '2'
