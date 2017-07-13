@@ -70,7 +70,7 @@ class IdentifierAst : Ast {
 			writef("\tmov eax, DWORD[rbp%+d]\n", p*8);
 		}
 		override string toString() {
-			return name;
+			return "%s".format(name);
 		}
 }
 
@@ -88,9 +88,37 @@ class IntegerAst : Ast {
 		}
 
 		override string toString() {
-			return v.to!string;
+			return "%d".format(v);
 		}
 }
+
+class StringAst : Ast {
+	public:
+		static StringAst[] strings;
+		static this() {
+			strings = [];
+		}
+		static emitData() {
+			foreach(s;strings) {
+				writef("%s:\tdb\t\"%s\", 0\n", s.label, s.value);
+			}
+		}
+
+		string value;
+		string label;
+		this(string value) {
+			this.value = value;
+			this.label = "strlabel%d".format(strings.length);
+			this.strings ~= this;
+		}
+		override void emit() {
+			writef("\tlea rax, [%s]\n", this.label);
+		}
+		override string toString() {
+			return "\"%s\"".format(this.value);
+		}
+}
+
 
 /// BlockAst: block is { ... } which is collection of statements
 /// TODO: block will be create new scope
@@ -110,7 +138,9 @@ class BlockAst : Ast {
 				buf ~= stmt.to!string;
 				buf ~= " ";
 			}
-			buf = buf[0..$-1];
+			if (stmts.length > 0) {
+				buf = buf[0..$-1];
+			}
 			buf ~= "}";
 			return cast(string)buf;
 		}

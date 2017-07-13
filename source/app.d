@@ -2,11 +2,6 @@ import std.stdio;
 import std.conv;
 import topi;
 
-/// emit_nasm_head: output nasm header
-void emit_nasm_head() {
-	write("bits 64\n",
-		"section .text\n");
-}
 
 
 void main(string[] args)
@@ -39,7 +34,10 @@ void main(string[] args)
 
 	// output nasm
 	else {
-		emit_nasm_head();
+		write("bits 64\n");
+		write("section .data\n");
+		StringAst.emitData();
+		write("section .text\n");
 		foreach(func; FunctionAst.functions) {
 			writef("global %s\n", func.name);
 		}

@@ -70,6 +70,7 @@ testast 'Func(Int) add1(a){a+1;} add1(10);' '(func add1 (Int:a) {(+ a 1)}) (func
 testast '1==1;' '(func _func () {(== 1 1)})'
 testast '0; if (1 == 1) { 1; }' '(func _func () {0 (cond ((== 1 1) {1}))})'
 testast '0; if (1 == 1) { 1; } elseif (1 == 2) { 2; } else { 3; }' '(func _func () {0 (cond ((== 1 1) {1}) ((== 1 2) {2}) {3})})'
+testast '"hello";' '(func _func () {"hello"})'
 
 test '1;' '1'
 test '1+1;' '2'

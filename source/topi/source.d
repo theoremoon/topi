@@ -40,13 +40,23 @@ class Source {
 		}
 		void unget(Token t) {
 			if (t) {
-				unget(t.str);
+				if (t.type == Token.Type.STRING) {
+					unget('"');
+					unget(t.str);
+					unget('"');
+				}
+				else {
+					unget(t.str);
+				}
 			}
 		}
 		Token get() {
-			Token tok;
 			skip_space;
-			tok = read_number;
+			auto tok = read_number;
+			if (tok) {
+				return tok;
+			}
+			tok = read_string;
 			if (tok) {
 				return tok;
 			}
@@ -78,11 +88,38 @@ class Source {
 			}
 			return new Token(Token.Type.INT, buf.to!string);
 		}
+		/// read_string
+		Token read_string() {
+			dchar c;
+			if (!get_with_skip(c)) {
+				return null;
+			}
+			if (c != '"') {
+				unget(c);
+				return null;
+			}
+			dchar[] buf;
+			while (true) {
+				if (!get_with_skip(c)) {
+					throw new Exception("unterminated string");
+				}
+				if (c == '"') {
+					break;
+				}
+				if (c == '\\') {
+					if (!get_with_skip(c)) {
+						throw new Exception("unterminated \\");
+					}
+				}
+				buf ~= c;
+			}
+			return new Token(Token.Type.STRING, buf.to!string);
+		}
 		/// read_identifier: read identifier or return null with read nothing
 		Token read_identifier() {
 			dchar c;
 			if (!get_with_skip(c)) {
-				return null;
+String:		return null;
 			}
 			if (c.isFirstChar) {
 				dchar[] buf;

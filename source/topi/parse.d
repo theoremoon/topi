@@ -9,11 +9,11 @@ import std.format;
 
 /// read_factor: read factor (number or identifier or  function call or (expr)) or return null
 Ast read_factor(Source src) {
-	auto tok = src.get;
+	Token tok = src.get;
 	if (! tok) {
 		return null;
 	}
-	switch (tok.type) {
+	final switch (tok.type) {
 		case Token.Type.INT:
 			return new IntegerAst(tok.str.to!int);
 		case Token.Type.IDENT:
@@ -33,8 +33,8 @@ Ast read_factor(Source src) {
 				return e;
 			}
 			break;
-		default:
-			break;
+		case Token.Type.STRING:
+			return new StringAst(tok.str);
 	}
 	src.unget(tok);
 	return null;

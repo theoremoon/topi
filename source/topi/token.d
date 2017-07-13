@@ -3,6 +3,7 @@ module topi.token;
 class Token {
 	public:
 		enum Type {
+			STRING,
 			IDENT,
 			INT,
 			SYMBOL,
