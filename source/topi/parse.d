@@ -109,8 +109,10 @@ Ast read_stmt(Source src) {
 		if (!v) {
 			throw new Exception("Expression expected");
 		}
-		src.next(";");
-		return new DefinitionAst(tok.str, ident.str, v);
+		if (src.next(";")) {
+			return new DefinitionAst(tok.str, ident.str, v);
+		}
+		throw new Exception("; is required");
 	}
 	if (tok.str == "if") {
 		Ast[] conds;
@@ -174,8 +176,10 @@ Ast read_stmt(Source src) {
 	if (!e) {
 		return null;
 	}
-	src.next(";");
-	return e;
+	if (src.next(";")) {
+		return e;
+	}
+	throw new Exception("; is required");
 }
 /// read_block: read block {...} collection of statements
 BlockAst read_block(Source src) {
