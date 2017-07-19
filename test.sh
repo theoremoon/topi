@@ -58,7 +58,9 @@ fi
 testast '1' '1'
 testast '1+5' '(+ 1 5)'
 testast '4+5' '(+ 4 5)'
+testast '6-5' '(- 6 5)'
 
 test '1' '1'
 test '1+5' '6'
 test '4+5' '9'
+test '6-5' '1'
