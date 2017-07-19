@@ -17,6 +17,7 @@ bool isIdentChar(dchar c) {
 /// Source: management source string
 class Source {
 	public:
+		uint line;
 		dchar[] buf;
 		Token[] tbuf;
 		File f;
@@ -26,6 +27,7 @@ class Source {
 			this.f = f;
 			buf = [];
 			tbuf = [];
+			line = 0;
 		}
 		bool next(string s) {
 			auto tok = get;
@@ -183,6 +185,9 @@ String:		return null;
 			uint cnt = 0;
 			dchar c;
 			while (get(c)) {
+				if (c == '\n') {
+					line++;
+				}
 				if (!c.isWhite) {
 					unget(c);
 					break;
