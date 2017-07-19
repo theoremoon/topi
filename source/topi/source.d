@@ -29,6 +29,18 @@ class Source {
 			tbuf = [];
 			line = 0;
 		}
+		bool expect(dchar c) {
+			dchar d;
+			while (get(d)) {
+				if (d == c) {
+					return true;
+				}
+				if (!d.isWhite) {
+					throw new Exception("character %c is required".format(c));
+				}
+			}
+			return false;
+		}
 		bool next(string s) {
 			auto tok = get;
 			if (!tok)  {
@@ -133,7 +145,11 @@ String:		return null;
 					}
 					buf ~= c;
 				}
-				return new Token(Token.Type.IDENT, buf.to!string);
+				auto s = buf.to!string;
+				if (s == "Int") {
+					return new Token(Token.Type.K_INT, s);
+				}
+				return new Token(Token.Type.IDENT, s);
 			}
 			unget(c);
 			return null;

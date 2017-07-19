@@ -5,10 +5,23 @@ import std.outbuffer;
 
 void main(string[] args) {
 	Source src = new Source(stdin);
+	env = new Env();
 
-	auto expr = src.read_expr;
+	Ast[] stmts;
+	while (true) {
+		auto stmt = src.read_stmt;
+		if (!stmt) { 
+			break;
+		}
+		stmts ~= stmt;
+	}
+	foreach (stmt; stmts) {
+		stmt.analyze;
+	}
 	if (args.length > 1 && args[1] == "-a") {
-		writeln(expr);
+		foreach (stmt; stmts) {
+			writeln(stmt);
+		}
 	}
 	else {
 		OutBuffer buf = new OutBuffer();
@@ -18,7 +31,9 @@ void main(string[] args) {
 		buf.write("_func:\n");
 		buf.write("\tpush rbp\n");
 		buf.write("\tmov rbp, rsp\n");
-		expr.emit(buf);
+		foreach (stmt; stmts) {
+			stmt.emit(buf);
+		}
 		buf.write("\tleave\n");
 		buf.write("\tret\n");
 		writeln(buf);

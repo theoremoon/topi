@@ -18,11 +18,11 @@ class OperatorAst : ValueAst {
 		string op;
 		ValueAst[] args;
 		OPTYPE optype;
+		Type rtype;
 
 		this(string op, ValueAst[] args) {
 			this.op = op;
 			this.args = args;
-
 			// オペレータを決めます
 			switch (op) {
 				case "+":
@@ -32,7 +32,7 @@ class OperatorAst : ValueAst {
 					if (!(args[0].type == Type.INT && args[1].type == Type.INT)) {
 						throw new Exception("invalid type for operator +");
 					}
-					this.type = Type.INT;
+					this.rtype = Type.INT;
 					this.optype = OPTYPE.ADD_INT_INT;
 					break;
 				case "-":
@@ -42,7 +42,7 @@ class OperatorAst : ValueAst {
 					if (!(args[0].type == Type.INT && args[1].type == Type.INT)) {
 						throw new Exception("invalid type for operator -");
 					}
-					this.type = Type.INT;
+					this.rtype = Type.INT;
 					this.optype = OPTYPE.SUB_INT_INT;
 					break;
 				case "*":
@@ -52,12 +52,17 @@ class OperatorAst : ValueAst {
 					if (!(args[0].type == Type.INT && args[1].type == Type.INT)) {
 						throw new Exception("invalid type for operator *");
 					}
-					this.type = Type.INT;
+					this.rtype = Type.INT;
 					this.optype = OPTYPE.MUL_INT_INT;
 					break;
  				default:
 					throw new Exception("invalid operator %c".format(op));
 			}
+		}
+		override Type type() {
+			return rtype;
+		}
+		override void analyze() {
 		}
 		override void emit(ref OutBuffer o) {
 			switch (optype) {

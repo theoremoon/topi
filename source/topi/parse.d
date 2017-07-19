@@ -3,6 +3,7 @@ module topi.parse;
 import topi;
 import std.conv;
 import std.format;
+debug import std.stdio;
 
 ValueAst read_factor(Source src) {
 	auto tok = src.get;
@@ -80,4 +81,27 @@ ValueAst read_expr(Source src, int p = -1) {
 		left = new OperatorAst(op.str, [left, right]);
 	}
 	return left;
+}
+
+Ast read_stmt(Source src) {
+	auto k_int = src.get;
+	if (!k_int) {
+		return null;
+	}
+	if (k_int.type == Token.Type.K_INT) {
+		auto name = src.get;
+		if (!name || name.type != Token.Type.IDENT) {
+			throw new Exception("Identifier is required. line %d".format(src.line));
+		}
+		src.expect('\n');
+		return new DeclAst(Type.INT, name.str);
+	}
+	src.unget(k_int);
+
+	auto expr = src.read_expr;
+	if (!expr) {
+		return null;
+	}
+	src.expect('\n');
+	return expr;
 }
