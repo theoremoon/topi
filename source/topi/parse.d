@@ -93,7 +93,9 @@ Ast read_stmt(Source src) {
 		if (!name || name.type != Token.Type.IDENT) {
 			throw new Exception("Identifier is required. line %d".format(src.line));
 		}
-		src.next(";");
+		if (!src.next(";")) {
+			throw new Exception("; is requried. line %d".format(src.line));
+		}
 		return new DeclAst(Type.INT, name.str);
 	}
 	src.unget(k_int);
@@ -102,6 +104,8 @@ Ast read_stmt(Source src) {
 	if (!expr) {
 		return null;
 	}
-	src.next(";");
+	if (!src.next(";")) {
+			throw new Exception("; is requried. line %d".format(src.line));
+		}
 	return expr;
 }
