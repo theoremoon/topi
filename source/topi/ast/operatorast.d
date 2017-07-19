@@ -12,6 +12,7 @@ class OperatorAst : ValueAst {
 		enum OPTYPE {
 			ADD_INT_INT,
 			SUB_INT_INT,
+			MUL_INT_INT,
 		}
 
 		string op;
@@ -44,6 +45,16 @@ class OperatorAst : ValueAst {
 					this.type = Type.INT;
 					this.optype = OPTYPE.SUB_INT_INT;
 					break;
+				case "*":
+					if (args.length != 2) {
+						throw new Exception("internal error: invalid argument number for operator *");
+					}
+					if (!(args[0].type == Type.INT && args[1].type == Type.INT)) {
+						throw new Exception("invalid type for operator *");
+					}
+					this.type = Type.INT;
+					this.optype = OPTYPE.MUL_INT_INT;
+					break;
  				default:
 					throw new Exception("invalid operator %c".format(op));
 			}
@@ -52,16 +63,33 @@ class OperatorAst : ValueAst {
 			switch (optype) {
 				case OPTYPE.ADD_INT_INT:
 					args[0].emit(o);
-					o.writef("\tmov rbx, rax\n");
+					o.writef("\tpush rax\n");
 					args[1].emit(o);
+					o.writef("\tpush rax\n");
+
+					o.writef("\tpop rbx\n");
+					o.writef("\tpop rax\n");
 					o.writef("\tadd rax, rbx\n");
 					break;
 				case OPTYPE.SUB_INT_INT:
 					args[0].emit(o);
-					o.writef("\tmov rbx, rax\n");
+					o.writef("\tpush rax\n");
 					args[1].emit(o);
-					o.writef("\tsub rbx, rax\n");
-					o.writef("\tmov rax, rbx\n");
+					o.writef("\tpush rax\n");
+
+					o.writef("\tpop rbx\n");
+					o.writef("\tpop rax\n");
+					o.writef("\tsub rax, rbx\n");
+					break;
+				case OPTYPE.MUL_INT_INT:
+					args[0].emit(o);
+					o.writef("\tpush rax\n");
+					args[1].emit(o);
+					o.writef("\tpush rax\n");
+
+					o.writef("\tpop rbx\n");
+					o.writef("\tpop rax\n");
+					o.writef("\timul rax, rbx\n");
 					break;
 				default:
 					throw new Exception("Emit for %s is unimplemented".format(optype));
