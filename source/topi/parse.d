@@ -4,7 +4,7 @@ import topi;
 import std.conv;
 import std.format;
 
-IntegerAst read_factor(Source src) {
+ValueAst read_factor(Source src) {
 	auto tok = src.get;
 	if (!tok) {
 		return null;
@@ -12,6 +12,23 @@ IntegerAst read_factor(Source src) {
 	switch (tok.type) {
 		case Token.Type.INT:
 			return new IntegerAst(tok.str.to!int);
+		case Token.Type.SYMBOL:
+			if (tok.str != "(") {
+				src.unget(tok);
+				return null;
+			}
+			auto expr = src.read_expr;
+			if (! expr ) {
+				throw new Exception("expression is required");
+			}
+			auto close = src.get;
+			if (!close) {
+				throw new Exception("Close parenthesis is required");
+			}
+			if (close.str != ")") {
+				throw new Exception("Close parenthesis is required");
+			}
+			return expr;
 		default:
 			break;
 	}
