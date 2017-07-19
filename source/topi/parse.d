@@ -19,7 +19,7 @@ IntegerAst read_factor(Source src) {
 	return null;
 }
 
-Ast read_expr(Source src) {
+ValueAst read_expr(Source src) {
 	auto left = src.read_factor;
 	if (!left) {
 		return null;
