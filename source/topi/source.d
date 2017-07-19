@@ -29,18 +29,6 @@ class Source {
 			tbuf = [];
 			line = 0;
 		}
-		bool expect(dchar c) {
-			dchar d;
-			while (get(d)) {
-				if (d == c) {
-					return true;
-				}
-				if (!d.isWhite) {
-					throw new Exception("character %c is required".format(c));
-				}
-			}
-			return false;
-		}
 		bool next(string s) {
 			auto tok = get;
 			if (!tok)  {
