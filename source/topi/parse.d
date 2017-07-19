@@ -84,21 +84,30 @@ ValueAst read_expr(Source src, int p = -1) {
 }
 
 Ast read_stmt(Source src) {
-	auto k_int = src.get;
-	if (!k_int) {
+	auto kw = src.get;
+	if (!kw) {
 		return null;
 	}
-	if (k_int.type == Token.Type.K_INT) {
-		auto name = src.get;
-		if (!name || name.type != Token.Type.IDENT) {
-			throw new Exception("Identifier is required. line %d".format(src.line));
-		}
-		if (!src.next(";")) {
-			throw new Exception("; is requried. line %d".format(src.line));
-		}
-		return new DeclAst(Type.INT, name.str);
+	switch (kw.type) {
+		case Token.Type.K_INT:
+			auto name = src.get;
+			if (!name || name.type != Token.Type.IDENT) {
+				throw new Exception("Identifier is required. line %d".format(src.line));
+			}
+			if (!src.next(";")) {
+				throw new Exception("; is requried. line %d".format(src.line));
+			}
+			return new DeclAst(Type.INT, name.str);
+		case Token.Type.K_RET:
+			auto retexpr = src.read_expr;
+			if (!src.next(";")) {
+				throw new Exception("; is requried. line %d".format(src.line));
+			}
+			return new ReturnAst(retexpr);
+		default:
+			src.unget(kw);
+			break;
 	}
-	src.unget(k_int);
 
 	auto expr = src.read_expr;
 	if (!expr) {

@@ -134,8 +134,13 @@ String:		return null;
 					buf ~= c;
 				}
 				auto s = buf.to!string;
-				if (s == "Int") {
-					return new Token(Token.Type.K_INT, s);
+				switch (s) {
+					case "Int":
+						return new Token(Token.Type.K_INT, s);
+					case "return":
+						return new Token(Token.Type.K_RET, s);
+					default:
+						break;
 				}
 				return new Token(Token.Type.IDENT, s);
 			}
