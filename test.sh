@@ -65,6 +65,11 @@ testast '1+2*3;' '(+ 1 (* 2 3))'
 testast '1*2+3;' '(+ (* 1 2) 3)'
 testast '(1+2)*3;' '(* (+ 1 2) 3)'
 testast 'return 10;' '(ret 10)'
+testast '{
+1;
+2+3;
+}' '{1 (+ 2 3)}'
+testast 'Int a=10; a;' '(def a:INT 10) a'
 
 test '1;' '1'
 test '1+5;' '6'
@@ -76,3 +81,5 @@ test '1+2*3;' '7'
 test '1*2+3;' '5'
 test '(1+2)*3;' '9'
 test '1; return 2; 3;' '2'
+test 'Int a=10; a;' '10'
+test 'Int a=10; Int b=15; a+b+a;' '35'

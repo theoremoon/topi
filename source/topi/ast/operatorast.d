@@ -3,6 +3,7 @@ module topi.ast.operatorast;
 import topi;
 import std.conv;
 import std.array;
+import std.range;
 import std.format;
 import std.algorithm;
 import std.outbuffer;
@@ -63,6 +64,7 @@ class OperatorAst : ValueAst {
 			return rtype;
 		}
 		override void analyze() {
+			args.each!(a => a.analyze);
 		}
 		override void emit(ref OutBuffer o) {
 			switch (optype) {

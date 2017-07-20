@@ -16,5 +16,7 @@ abstract class ValueAst : Ast {
 
 public import topi.ast.integerast,
        topi.ast.operatorast,
-       topi.ast.declast,
-       topi.ast.returnast;
+       topi.ast.defast,
+       topi.ast.returnast,
+       topi.ast.blockast,
+       topi.ast.variableast;
