@@ -110,7 +110,7 @@ Ast read_stmt(Source src) {
 	 if (!src.next(";")) {
 	    throw new Exception("; is requried. line %d".format(src.line));
 	 }
-	 return new DefAst(Type.INT, name.str, init);
+	 return new DefAst(Type.Int, name.str, init);
       case Token.Type.K_RET:
 	 auto retexpr = src.read_expr;
 	 if (!src.next(";")) {

@@ -69,7 +69,7 @@ testast '{
 1;
 2+3;
 }' '{1 (+ 2 3)}'
-testast 'Int a=10; a;' '(def a:INT 10) a'
+testast 'Int a=10; a;' '(def a:Int 10) a'
 
 test '1;' '1'
 test '1+5;' '6'

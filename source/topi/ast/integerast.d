@@ -11,7 +11,7 @@ class IntegerAst : ValueAst {
 			this.value = value;
 		}
 		override Type type() {
-			return Type.INT;
+			return Type.Int;
 		}
 		override void analyze() {}
 		override void emit(ref OutBuffer o) {

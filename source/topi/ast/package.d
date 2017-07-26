@@ -19,4 +19,5 @@ public import topi.ast.integerast,
        topi.ast.defast,
        topi.ast.returnast,
        topi.ast.blockast,
-       topi.ast.variableast;
+       topi.ast.variableast,
+       topi.ast.functionast;
