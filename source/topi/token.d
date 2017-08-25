@@ -7,8 +7,6 @@ class Token {
 			IDENT,
 			INT,
 			SYMBOL,
-			K_INT, // keyword int
-			K_RET,
 		}
 
 		Type type;

@@ -9,11 +9,8 @@ class IntegerAst : ValueAst {
 		int value;
 		this(int value) {
 			this.value = value;
+			this.type = Type.INT;
 		}
-		override Type type() {
-			return Type.Int;
-		}
-		override void analyze() {}
 		override void emit(ref OutBuffer o) {
 			o.writef("\tmov rax, %d\n", value);
 		}
