@@ -5,7 +5,15 @@ import dlex;
 import std.stdio;
 import std.uni;
 
-alias Token = DLex!Type.LexResult;
+enum TokenType {
+    STRING,
+    IDENT,
+    INT,
+    SYMBOL,
+    SPACE,
+}
+
+alias Token = DLex!TokenType.LexResult;
 class Source {
     public {
 	Token[] results;
@@ -33,29 +41,29 @@ class Source {
 
 auto Lex(dstring src) {
 
-    auto dlex = new DLex!(Type);
+    auto dlex = new DLex!(TokenType);
     dlex.Rules([
-            dlex.RuleT(Type.IDENT, Pred(&isAlpha) + Pred(&isAlphaNum).Repeat),
-            dlex.RuleT(Type.INT, Pred(&isNumber).Repeat),
-            dlex.RuleT(Type.SPACE, Pred(&isSpace).Skip),
-	    dlex.RuleT(Type.STRING,
+            dlex.RuleT(TokenType.IDENT, Pred(&isAlpha) + Pred(&isAlphaNum).Repeat),
+            dlex.RuleT(TokenType.INT, Pred(&isNumber).Repeat),
+            dlex.RuleT(TokenType.SPACE, Pred(&isSpace).Skip),
+	    dlex.RuleT(TokenType.STRING,
                 Between(Char('"'), Char('"'),
                     String(`\"`).As((dstring s) => `"`d)| 
                     Any
                 ).As((dstring s) => s[1..$-1])
             ),
-	    dlex.RuleT(Type.SYMBOL, Char('(')),
-	    dlex.RuleT(Type.SYMBOL, Char(')')),
-	    dlex.RuleT(Type.SYMBOL, Char('{')),
-	    dlex.RuleT(Type.SYMBOL, Char('}')),
-	    dlex.RuleT(Type.SYMBOL, Char(',')),
-	    dlex.RuleT(Type.SYMBOL, Char(';')),
-	    dlex.RuleT(Type.SYMBOL, String("==")),
-	    dlex.RuleT(Type.SYMBOL, Char('=')),
-	    dlex.RuleT(Type.SYMBOL, Char('+')),
-	    dlex.RuleT(Type.SYMBOL, Char('-')),
-	    dlex.RuleT(Type.SYMBOL, Char('*')),
-	    dlex.RuleT(Type.SYMBOL, Char('/')),
+	    dlex.RuleT(TokenType.SYMBOL, Char('(')),
+	    dlex.RuleT(TokenType.SYMBOL, Char(')')),
+	    dlex.RuleT(TokenType.SYMBOL, Char('{')),
+	    dlex.RuleT(TokenType.SYMBOL, Char('}')),
+	    dlex.RuleT(TokenType.SYMBOL, Char(',')),
+	    dlex.RuleT(TokenType.SYMBOL, Char(';')),
+	    dlex.RuleT(TokenType.SYMBOL, String("==")),
+	    dlex.RuleT(TokenType.SYMBOL, Char('=')),
+	    dlex.RuleT(TokenType.SYMBOL, Char('+')),
+	    dlex.RuleT(TokenType.SYMBOL, Char('-')),
+	    dlex.RuleT(TokenType.SYMBOL, Char('*')),
+	    dlex.RuleT(TokenType.SYMBOL, Char('/')),
     ]);
 
     return new Source(dlex.Lex(src));

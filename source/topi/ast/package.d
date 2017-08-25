@@ -10,7 +10,6 @@ abstract class Ast {
 
 abstract class ValueAst : Ast {
        public:
-              Type type;
 }
 
 public import topi.ast.integerast,

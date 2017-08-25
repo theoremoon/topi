@@ -29,30 +29,18 @@ class OperatorAst : ValueAst {
 					if (args.length != 2) {
 						throw new Exception("internal error: invalid argument number for operator +");
 					}
-					if (!(args[0].type == Type.INT && args[1].type == Type.INT)) {
-						throw new Exception("invalid type for operator +");
-					}
-					this.type = Type.INT;
 					this.optype = OPTYPE.ADD_INT_INT;
 					break;
 				case "-":
 					if (args.length != 2) {
 						throw new Exception("internal error: invalid argument number for operator -");
 					}
-					if (!(args[0].type == Type.INT && args[1].type == Type.INT)) {
-						throw new Exception("invalid type for operator -");
-					}
-					this.type = Type.INT;
 					this.optype = OPTYPE.SUB_INT_INT;
 					break;
 				case "*":
 					if (args.length != 2) {
 						throw new Exception("internal error: invalid argument number for operator *");
 					}
-					if (!(args[0].type == Type.INT && args[1].type == Type.INT)) {
-						throw new Exception("invalid type for operator *");
-					}
-					this.type = Type.INT;
 					this.optype = OPTYPE.MUL_INT_INT;
 					break;
  				default:

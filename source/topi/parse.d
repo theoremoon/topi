@@ -10,7 +10,7 @@ IntegerAst read_factor(Source src) {
 		return null;
 	}
 	switch (tok.type) {
-		case Type.INT:
+		case TokenType.INT:
 			return new IntegerAst(tok.str.to!int);
 		default:
 			break;
@@ -47,7 +47,7 @@ ValueAst read_expr(Source src, int p = -1) {
 		if (! op) {
 			break;
 		}
-		if (op.type != Type.SYMBOL) {
+		if (op.type != TokenType.SYMBOL) {
 			src.unget(op);
 			break;
 		}
