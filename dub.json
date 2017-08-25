@@ -5,5 +5,8 @@
 	],
 	"description": "topi is practical language",
 	"copyright": "Copyright © 2017, theoldmoon0602",
-	"license": "MIT"
+	"license": "MIT",
+	"dependencies": {
+		"d-lex": "*"
+	}
 }

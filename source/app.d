@@ -1,10 +1,23 @@
 import topi;
 
 import std.stdio;
+import std.conv;
+import std.string;
 import std.outbuffer;
 
+
+string readAll(File f) {
+    const SIZE = 4096; 
+    ubyte[] buf;
+    foreach (buffer; f.byChunk(SIZE)) {
+        buf ~= buffer;
+    }
+    return buf.assumeUTF;
+}
+
 void main(string[] args) {
-	Source src = new Source(stdin);
+	auto srcstr = stdin.readAll.strip.to!dstring;
+	Source src = Lex(srcstr);
 
 	auto expr = src.read_expr;
 	if (args.length > 1 && args[1] == "-a") {

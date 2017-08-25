@@ -1,8 +1,9 @@
 module topi.type;
 
-import topi;
-
 enum Type {
-	INT,
-	STRING
+    STRING,
+    IDENT,
+    INT,
+    SYMBOL,
+    SPACE,
 }

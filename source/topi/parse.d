@@ -10,7 +10,7 @@ IntegerAst read_factor(Source src) {
 		return null;
 	}
 	switch (tok.type) {
-		case Token.Type.INT:
+		case Type.INT:
 			return new IntegerAst(tok.str.to!int);
 		default:
 			break;
@@ -47,7 +47,7 @@ ValueAst read_expr(Source src, int p = -1) {
 		if (! op) {
 			break;
 		}
-		if (op.type != Token.Type.SYMBOL) {
+		if (op.type != Type.SYMBOL) {
 			src.unget(op);
 			break;
 		}
@@ -58,9 +58,9 @@ ValueAst read_expr(Source src, int p = -1) {
 		}
 		auto right = src.read_expr(priority);
 		if (! right) {
-			throw new Exception("Right hand expression is required. line %d".format(src.line));
+			throw new Exception("Right hand expression is required. line %d".format(src.get.pos.line));
 		}
-		left = new OperatorAst(op.str, [left, right]);
+		left = new OperatorAst(op.str.to!string, [left, right]);
 	}
 	return left;
 }
