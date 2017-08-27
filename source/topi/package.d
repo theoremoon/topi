@@ -1,5 +1,10 @@
 module topi;
 
-public import topi.source, topi.ast, topi.parse, topi.token;
+public import
+    topi.func,
+    topi.ast,
+    topi.parse,
+    topi.type,
+    topi.dlex;
 
 

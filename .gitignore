@@ -5,4 +5,4 @@ __dummy.html
 *.obj
 __test__*__
 tmp.*
-topi
+/topi
