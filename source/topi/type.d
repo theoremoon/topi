@@ -1,24 +1,15 @@
 module topi.type;
 
+import topi;
 import std.range;
 
 // 型
 class Type {
     public:
-	static Type[string] types;
 
 	// Primitivies
 	static Type Int;
 	static Type Char;
-	static this() {
-	    Int = new Type([], null);
-	    Int.outType = Int;
-	    types["Int"] = Int;
-
-	    Char = new Type([], null);
-	    Char.outType = Char;
-	    types["Char"] = Char;
-	}
 
 	// Argument Types and Return Type
 	Type[] inType;
@@ -32,10 +23,7 @@ class Type {
 	this(string name, Type[] inType, Type outType) {
 	    this(inType, outType);
 	    this.name = name;
-	    if (name in types) {
-		throw new Exception("");
-	    }
-	    types[name] = this;
+	    Env.cur.registerType(this);
 	}
 
 	Type rtype() {
@@ -54,4 +42,14 @@ class Type {
 	    }
 	    return true;
 	}
+}
+
+void builtin_types() {
+    Type.Int = new Type([], null);
+    Type.Int.outType = Type.Int;
+    Env.cur.registerType(Type.Int);
+
+    Type.Char = new Type([], null);
+    Type.Char.outType = Type.Char;
+    Env.cur.registerType(Type.Char);
 }
