@@ -10,6 +10,9 @@ class IntegerAst : ValueAst {
 		this(int value) {
 			this.value = value;
 		}
+		override Type rtype() {
+			return Type.Int;
+		}
 		override void emit(ref OutBuffer o) {
 			o.writef("\tmov rax, %d\n", value);
 		}

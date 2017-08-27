@@ -60,7 +60,7 @@ ValueAst read_expr(Source src, int p = -1) {
 		if (! right) {
 			throw new Exception("Right hand expression is required. line %d".format(src.get.pos.line));
 		}
-		left = new OperatorAst(op.str.to!string, [left, right]);
+		left = new FuncCallAst(op.str.to!string, [left, right]);
 	}
 	return left;
 }

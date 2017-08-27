@@ -10,7 +10,8 @@ abstract class Ast {
 
 abstract class ValueAst : Ast {
        public:
+              abstract Type rtype();
 }
 
 public import topi.ast.integerast,
-       topi.ast.operatorast;
+       topi.ast.funccallast;
