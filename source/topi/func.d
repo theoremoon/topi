@@ -10,9 +10,6 @@ import std.outbuffer;
 // TODO: 引数の渡し方を実装する
 class Func {
     public:
-	// static に管理
-	static Func[string] funcs;
-
 	alias procT = void delegate(ref OutBuffer);
 	string name;
 	Type type;
@@ -23,10 +20,9 @@ class Func {
 	    this.type = type;
 	    this.proc = proc;
 
-	    if (this.signature in funcs) {
+	    if (! Env.cur.registerFunc(this)) {
 		throw new Exception("function <%s> is already defined".format(this.signature));
 	    }
-	    funcs[this.signature] = this;
 	}
 
 	string signature() {
@@ -34,13 +30,6 @@ class Func {
 	}
 	static string signature(string fname, ValueAst[] args) {
 	    return fname ~ "_" ~ args.map!((a) => a.rtype.name).join("_");
-	}
-	static Func getFunc (string fname, ValueAst[] args) {
-	    string sign = Func.signature(fname, args);
-	    if (sign !in funcs)  {
-		return null;
-	    }
-	    return funcs[sign];
 	}
 
 	// 関数の引数があってるか調べる

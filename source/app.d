@@ -17,6 +17,7 @@ string readAll(File f) {
 
 void main(string[] args) {
     // 準備
+    builtin_types(); 
     builtin_funcs(); 
 
     auto srcstr = stdin.readAll.strip.to!dstring;

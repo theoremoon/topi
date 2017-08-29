@@ -35,6 +35,12 @@ int get_priority(Token op) {
 	return 0;
 }
 ValueAst read_expr(Source src, int p = -1) {
+	// open paren
+	if (src.is_next("{")) {
+		return src.read_block;
+	}
+
+
 	// left hand
 	ValueAst left = src.read_factor;
 	if (! left) {
@@ -63,4 +69,21 @@ ValueAst read_expr(Source src, int p = -1) {
 		left = new FuncCallAst(op.str.to!string, [left, right]);
 	}
 	return left;
+}
+BlockAst read_block(Source src) {
+	ValueAst[] exprs;
+	while (true) {
+		auto expr = src.read_expr;
+		if (!expr) { 
+			break;
+		}
+		exprs ~= expr;
+		if (! src.is_next(";")) {
+			break;
+		}
+	}
+	if (! src.is_next("}")) {
+		throw new Exception("} is expected at %d".format(src.get.pos.line));
+	}
+	return new BlockAst(exprs);
 }

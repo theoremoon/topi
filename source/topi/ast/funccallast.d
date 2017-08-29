@@ -20,7 +20,7 @@ class FuncCallAst : ValueAst {
 			this.args = args;
 
 			// 関数が定義されてなければ死ぬ
-			f = Func.getFunc(fname, args);
+			f = Env.cur.getFunc(fname, args);
 			if (f is null) {
 			    throw new Exception("Function <%s> is not defined".format(Func.signature(fname, args)));
 			}
