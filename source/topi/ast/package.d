@@ -13,5 +13,7 @@ abstract class ValueAst : Ast {
               abstract Type rtype();
 }
 
-public import topi.ast.integerast,
-       topi.ast.funccallast;
+public import
+       topi.ast.integerast,
+       topi.ast.funccallast,
+       topi.ast.blockast;

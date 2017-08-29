@@ -8,6 +8,7 @@ class Type {
     public:
 
 	// Primitivies
+	static Type Unit;
 	static Type Int;
 	static Type Char;
 
@@ -45,6 +46,10 @@ class Type {
 }
 
 void builtin_types() {
+    Type.Unit = new Type([], null);
+    Type.Unit.outType = Type.Unit;
+    Env.cur.registerType(Type.Unit);
+
     Type.Int = new Type([], null);
     Type.Int.outType = Type.Int;
     Env.cur.registerType(Type.Int);

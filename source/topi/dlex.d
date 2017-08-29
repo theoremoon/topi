@@ -3,6 +3,7 @@ module topi.dlex;
 import topi;
 import dlex;
 import std.stdio;
+import std.conv;
 import std.uni;
 
 enum TokenType {
@@ -36,6 +37,17 @@ class Source {
 	if (results[p] != tok) {
 	    throw new Exception("invalid unget. expected:" ~ results[p].toString ~", got: " ~ tok.toString);
 	}
+    }
+    bool is_next(string s) {
+	auto tok = this.get;
+	if (!tok) {
+	    return false;
+	}
+	if (tok.str.to!string == s) {
+	    return true;
+	}
+	this.unget(tok);
+	return false;
     }
 }
 
