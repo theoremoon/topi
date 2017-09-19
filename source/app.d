@@ -8,7 +8,7 @@ import token;
 import exception;
 import lex;
 
-void asm_head(ref OutBuffer o) {
+void asm_head(OutBuffer o) {
     o.write("bits 64\n");
     o.write("global _func\n");
     o.write("extern print_int\n");
@@ -16,34 +16,64 @@ void asm_head(ref OutBuffer o) {
     o.write("section .text\n");
 }
 
-void asm_print_int(ref OutBuffer o, long v) {
-    o.write("\tpush rax\n");
-    o.writef("\tmov rax,%d\n", v);
-    o.write("\tcall print_int\n");
-    o.write("\tpop rax\n");
+
+abstract class Node {
+    public:
+        void emit(OutBuffer o);
 }
 
-long parse_int(Token tok) {
+class IntNode : Node {
+    private:
+        long v;
+    public:
+        this(long v) {
+            this.v = v;
+        }
+        override void emit(OutBuffer o) {
+            o.write("\tpush rdi\n");
+            o.writef("\tmov rdi,%d\n", v);
+            o.write("\tcall print_int\n");
+            o.write("\tpop rdi\n");
+        }
+}
+
+class RealNode : Node {
+    private:
+        double v;
+        long double2long(double v) {
+            import std.bitmanip;
+            import std.system : Endian;
+
+            ubyte[] buf;
+            buf.length = 8;
+            std.bitmanip.write!(double, Endian.littleEndian)(buf, v, 0);
+            return buf.peek!(long, Endian.littleEndian);
+        }
+    public:
+        this(double v) {
+            this.v = v;
+        }
+        override void emit(OutBuffer o) {
+            o.writef("\tmov rax,%d\n", double2long(v));
+            o.writef("\tmov [rbp-8],rax\n");
+            o.write("\tmovupd xmm0,[rbp-8]\n");
+            o.write("\tcall print_real\n");
+        }
+}
+
+Node parseOne(Token tok) {
+    if (tok.type == Token.Type.REAL) {
+        return new RealNode(tok.str.to!double);
+    }
     if (tok.type == Token.Type.DIGIT) {
-        long v = tok.str.to!long(10);
-        return v;
+        return new IntNode(tok.str.to!long(10));
     }
     if (tok.type == Token.Type.HEX) {
-        long v = tok.str.to!long(16);
-        return v;
+        return new IntNode(tok.str.to!long(16));
     }
     throw new TopiException("Unimplemented", tok.loc);
 }
 
-long double2long(double v) {
-    import std.bitmanip;
-    import std.system : Endian;
-
-    ubyte[] buf;
-    buf.length = 8;
-    std.bitmanip.write!(double, Endian.littleEndian)(buf, v, 0);
-    return buf.peek!(long, Endian.littleEndian);
-}
 
 void main()
 {
@@ -51,7 +81,7 @@ void main()
     OutBuffer o = new OutBuffer();
 
     auto tok = lex_number(input);
-    auto v = parse_int(tok);
+    auto node = parseOne(tok);
 
     asm_head(o);
     o.write("_func:\n");
@@ -59,10 +89,7 @@ void main()
     o.write("\tmov rbp,rsp\n");
     o.write("\tsub rsp,0x10\n");
 
-    o.writef("\tmov rax,%d\n", double2long(0.125));
-    o.writef("\tmov [rbp-8],rax\n");
-    o.write("\tmovsd xmm0,[rbp-8]\n");
-    o.write("\tcall print_real\n");
+    node.emit(o);
 
     o.write("\tleave\n");
     o.write("\tret\n");
