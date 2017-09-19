@@ -43,5 +43,8 @@ if [ $? -ne 0 ]; then
 fi
 
 test "1234" "1234"
+test "0xFF" "255"
+test "1.234" "1.234000"
+test "0.234" "0.234000"
 
 toilet -f smblock  "all test passed" --gay
