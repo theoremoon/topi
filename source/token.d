@@ -5,6 +5,7 @@ class Token {
     public:
         enum Type {
             DIGIT,
+            HEX,
             UNKNOWN,
         }
         dstring str;
