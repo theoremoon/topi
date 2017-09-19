@@ -2,8 +2,16 @@
 
 extern int _func(void);
 
+void print_real(double v) {
+    printf("%lf\n", v);
+    return;
+}
+void print_int(long v) {
+    printf("%ld\n", v);
+    return;
+}
+
 int main() {
-    int v = _func();
-    printf("%d\n", v);
+    _func();
     return 0;
 }
