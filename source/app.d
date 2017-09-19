@@ -16,8 +16,10 @@ void asm_head(ref OutBuffer o) {
 }
 
 void asm_print_int(ref OutBuffer o, long v) {
-    o.writef("\tmov rdi,%d\n", v);
+    o.write("\tpush rax\n");
+    o.writef("\tmov rax,%d\n", v);
     o.write("\tcall print_int\n");
+    o.write("\tpop rax\n");
 }
 
 long parse_int(Token tok) {
