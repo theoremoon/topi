@@ -12,6 +12,7 @@ void asm_head(ref OutBuffer o) {
     o.write("bits 64\n");
     o.write("global _func\n");
     o.write("extern print_int\n");
+    o.write("extern print_real\n");
     o.write("section .text\n");
 }
 
@@ -34,6 +35,16 @@ long parse_int(Token tok) {
     throw new TopiException("Unimplemented", tok.loc);
 }
 
+long double2long(double v) {
+    import std.bitmanip;
+    import std.system : Endian;
+
+    ubyte[] buf;
+    buf.length = 8;
+    std.bitmanip.write!(double, Endian.littleEndian)(buf, v, 0);
+    return buf.peek!(long, Endian.littleEndian);
+}
+
 void main()
 {
     Input input = new Input(stdin);
@@ -44,7 +55,16 @@ void main()
 
     asm_head(o);
     o.write("_func:\n");
-    o.asm_print_int(v);
+    o.write("\tpush rbp\n");
+    o.write("\tmov rbp,rsp\n");
+    o.write("\tsub rsp,0x10\n");
+
+    o.writef("\tmov rax,%d\n", double2long(0.125));
+    o.writef("\tmov [rbp-8],rax\n");
+    o.write("\tmovsd xmm0,[rbp-8]\n");
+    o.write("\tcall print_real\n");
+
+    o.write("\tleave\n");
     o.write("\tret\n");
 
     writeln(o.toString);
