@@ -54,5 +54,8 @@ test "0xFF" "255"
 test "1.234" "1.234000"
 test "0.234" "0.234000"
 test "12+34" "46"
+test "12.3+4" "16.300000"
+test "12+3.4" "15"
+test "1.2+3.4" "4.600000"
 
 toilet -f smblock  "all test passed" --gay
