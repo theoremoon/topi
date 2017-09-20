@@ -1,4 +1,5 @@
 import std.conv;
+import std.range;
 import std.format;
 
 
@@ -6,12 +7,46 @@ import input;
 import token;
 import exception;
 
+class Lexer {
+    private:
+        Token[] ungetbuf = [];
+        Input input;
+    public:
+        this(Input input) {
+            this.input = input;
+        }
+
+        Token get() {
+            if (ungetbuf.length > 0) {
+                Token tok = ungetbuf.back;
+                ungetbuf.popBack;
+                return tok;
+            }
+
+            return lexOne(input);
+        }
+        void unget(Token tok) {
+            ungetbuf ~= tok;
+        }
+        Location loc() {
+            return input.location;
+        }
+}
+
 
 bool isHex(dchar c) {
     return isDigit(c) || ('A' <= c && c <= 'F');
 }
 bool isDigit(dchar c) {
     return '0' <= c && c <= '9';
+}
+
+Token lexOne(Input input) {
+    auto token  = lex_symbol(input);
+    if (token !is null) { return token; }
+    token = lex_number(input);
+    if (token !is null) { return token; }
+    return null;
 }
 
 Token lex_real(Input input) {
@@ -105,5 +140,18 @@ Token lex_number(Input input) {
     }
     // not a number
     input.unget(c);
-    return new Token(Token.Type.UNKNOWN, "", input.location);
+    return null;
+}
+
+Token lex_symbol(Input input) {
+    dchar c = input.get;
+
+    switch (c) {
+        case '+':
+            return new Token(Token.Type.SYM_ADD, "+", input.location);
+        default:
+            break;
+    }
+    input.unget(c);
+    return null;
 }

@@ -52,14 +52,18 @@ class Input {
             // from file
             else if (f.isOpen) {
                 if (line.length == 0) {
+                    if (f.eof) {
+                        iseof = true;
+                        return cast(dchar)0;
+                    }
                     line = f.readln.to!dstring.dup;
+                    if (line.length == 0) {
+                        iseof = true;
+                        return cast(dchar)0;
+                    }
                 }
                 c = line.front;
                 line.popFront;
-
-		if (line.length == 0 && f.eof) {
-		    iseof = true;
-		}
             }
             // from string
             else {

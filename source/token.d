@@ -7,6 +7,7 @@ class Token {
             DIGIT,
             HEX,
             REAL,
+            SYM_ADD,
             UNKNOWN,
         }
         dstring str;
