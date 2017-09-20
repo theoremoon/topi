@@ -8,6 +8,31 @@ abstract class Node {
         Type type();
 }
 
+void emit_int(Node node, OutBuffer o) {
+    if (node.type is Type.Int) {
+        node.emit(o);
+    }
+    else if (node.type is Type.Real) {
+        node.emit(o);
+        o.write("\tcvtsd2si eax, xmm0\n");
+    }
+    else {
+        throw new Exception("unimplemented");
+    }
+}
+void emit_real(Node node, OutBuffer o) {
+    if (node.type is Type.Real) {
+        node.emit(o);
+    }
+    else if (node.type is Type.Int) {
+        node.emit(o);
+        o.write("\tcvtsi2sd xmm0, rax\n");
+    }
+    else {
+        throw new Exception("unimplemented");
+    }
+}
+
 class IntNode : Node {
     private:
         long v;
@@ -63,14 +88,29 @@ class AddNode : Node {
             this.right = right;
         }
         override void emit(OutBuffer o) {
-            left.emit(o);
-            o.write("\tpush rax\n");
-            right.emit(o);
-            o.write("\tmov rcx,rax\n");
-            o.write("\tpop rax\n");
-            o.write("\tadd rax,rcx\n");
+            if (left.type is Type.Int) {
+                left.emit(o);
+                o.write("\tpush rax\n");
+                right.emit_int(o);
+                o.write("\tmov rcx,rax\n");
+                o.write("\tpop rax\n");
+                o.write("\tadd rax,rcx\n");
+            }
+            else if (left.type is Type.Real) {
+                left.emit(o);
+                o.write("\tsub rsp,0x8\n");
+                o.write("\tmovsd [rsp],xmm0\n");
+                right.emit_real(o);
+                o.write("\tmovsd xmm1,xmm0\n");
+                o.write("\tmovsd xmm0,[rsp]\n");
+                o.write("\tadd rsp,0x8\n");
+                o.write("\taddsd xmm0,xmm1\n");
+            }
+            else {
+                throw new Exception("unimplemented");
+            }
         }
         override Type type() {
-            return Type.Int;
+            return left.type;
         }
 }

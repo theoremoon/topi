@@ -76,6 +76,7 @@ Token lex_real(Input input) {
         input.unget(c);
         return new Token(Token.Type.DIGIT, buf.idup, input.location);
     }
+    input.unget(c);
     // real value
     return new Token(Token.Type.REAL, (buf ~ "." ~ buf2).to!dstring, input.location);
 }
