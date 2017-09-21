@@ -23,9 +23,31 @@ Node parseNum(Lexer lexer) {
     return null;
 }
 
-Node parseExpr(Lexer lexer, Node left = null) {
+Node parseTerm(Lexer lexer, Node left = null) {
     if (left is null) {
         left = lexer.parseNum;
+        if (left is null) { return null; }
+    }
+
+    auto op = lexer.get;
+    if (op is null) { return left; }
+
+    // binary *
+    if (op.type == Token.Type.OP_MUL) {
+        auto right = lexer.parseTerm;
+        if (right is null) {
+            throw new TopiException("expected right hand expr", lexer.loc);
+        }
+        return parseTerm(lexer, new FuncCall(op.str, [left, right]));
+    }
+    // otherwise
+    lexer.unget(op);
+    return left;
+}
+
+Node parseExpr(Lexer lexer, Node left = null) {
+    if (left is null) {
+        left = lexer.parseTerm;
         if (left is null) {
             return null;
         }
@@ -36,11 +58,11 @@ Node parseExpr(Lexer lexer, Node left = null) {
         return left;
     }
 
-    // binary +
+    // binary +-
     if (op.type == Token.Type.SYM_ADD || op.type == Token.Type.SYM_SUB) {
-        auto right = lexer.parseNum;
+        auto right = lexer.parseTerm;
         if (right is null) {
-            throw new TopiException("right hand expression is expected", op.loc);
+            throw new TopiException("expected right hand expr", lexer.loc);
         }
         return parseExpr(lexer, new FuncCall(op.str, [left, right]));
     }

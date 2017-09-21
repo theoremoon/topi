@@ -160,4 +160,18 @@ void register_builtin() {
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
+
+    // imul
+    auto int_imul = function(Node[] args, OutBuffer o) {
+	args[0].emit_int(o);
+	o.write("\tpush rax\n");
+	args[1].emit_int(o);
+	o.write("\tmov rcx,rax\n");
+	o.write("\tpop rax\n");
+	o.write("\timul rcx\n");
+    };
+    succeeded = Func.register(new BuiltinFunc("*", [Type.Int, Type.Int], Type.Int, null, int_imul));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
 }

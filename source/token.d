@@ -9,6 +9,7 @@ class Token {
             REAL,
             SYM_ADD,
             SYM_SUB,
+            OP_MUL,
             UNKNOWN,
         }
         dstring str;
