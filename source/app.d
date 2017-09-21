@@ -35,34 +35,29 @@ Node parseNum(Lexer lexer) {
     return null;
 }
 
-Node parseExpr(Lexer lexer) {
-    auto num = lexer.parseNum;
+Node parseExpr(Lexer lexer, Node left = null) {
+    if (left is null) {
+        left = lexer.parseNum;
+        if (left is null) {
+            return null;
+        }
+    }
+
     auto op = lexer.get;
-
     if (op is null) {
-        if (num is null) {
-            throw new TopiException("expression is required", lexer.loc);
-        }
-        return num;
+        return left;
     }
 
-    // binary or unary add
+    // binary +
     if (op.type == Token.Type.SYM_ADD) {
-        // binary
-        if (num !is null) {
-            auto right = lexer.parseNum;
-            if (right is null) {
-                throw new TopiException("right hand expression is expected", op.loc);
-            }
-            return new FuncCall(op.str, [num, right]);
+        auto right = lexer.parseNum;
+        if (right is null) {
+            throw new TopiException("right hand expression is expected", op.loc);
         }
-        // unary
-        throw new TopiException("unary operator + is not implemented yet", op.loc);
+        return parseExpr(lexer, new FuncCall(op.str, [left, right]));
     }
+    // otherwise
     lexer.unget(op);
-    if (num !is null) {
-        return num;
-    }
     throw new TopiException("expression is required", lexer.loc);
 }
 
