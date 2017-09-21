@@ -1,11 +1,13 @@
 import std.outbuffer;
+import std.conv;
 
 import type;
+import func;
 
-abstract class Node {
+class Node {
     public:
-        void emit(OutBuffer o);
-        Type type();
+        abstract void emit(OutBuffer o);
+        abstract Type type();
 }
 
 void emit_int(Node node, OutBuffer o) {
@@ -79,38 +81,61 @@ class RealNode : Node {
         }
 }
 
-class AddNode : Node {
-    private:
-        Node left, right;
+class FuncCall : Node {
     public:
-        this(Node left, Node right) {
-            this.left = left;
-            this.right = right;
+        dstring fname;
+        Node[] args;
+        Func func;
+
+        this(dstring fname, Node[] args) {
+            this.fname = fname;
+            this.args = args;
+            this.func = Func.get(fname, args);
+            if (func is null)  {
+                throw new Exception("Unimplemented function: " ~ Func.signature(fname, args).to!string); 
+            }
         }
+
         override void emit(OutBuffer o) {
-            if (left.type is Type.Int) {
-                left.emit(o);
-                o.write("\tpush rax\n");
-                right.emit_int(o);
-                o.write("\tmov rcx,rax\n");
-                o.write("\tpop rax\n");
-                o.write("\tadd rax,rcx\n");
-            }
-            else if (left.type is Type.Real) {
-                left.emit(o);
-                o.write("\tsub rsp,0x8\n");
-                o.write("\tmovsd [rsp],xmm0\n");
-                right.emit_real(o);
-                o.write("\tmovsd xmm1,xmm0\n");
-                o.write("\tmovsd xmm0,[rsp]\n");
-                o.write("\tadd rsp,0x8\n");
-                o.write("\taddsd xmm0,xmm1\n");
-            }
-            else {
-                throw new Exception("unimplemented");
-            }
+            func.call(args, o);
         }
         override Type type() {
-            return left.type;
+            return func.rettype;
         }
 }
+
+// class AddNode : Node {
+//     private:
+//         Node left, right;
+//     public:
+//         this(Node left, Node right) {
+//             this.left = left;
+//             this.right = right;
+//         }
+//         override void emit(OutBuffer o) {
+//             if (left.type is Type.Int) {
+//                 left.emit(o);
+//                 o.write("\tpush rax\n");
+//                 right.emit_int(o);
+//                 o.write("\tmov rcx,rax\n");
+//                 o.write("\tpop rax\n");
+//                 o.write("\tadd rax,rcx\n");
+//             }
+//             else if (left.type is Type.Real) {
+//                 left.emit(o);
+//                 o.write("\tsub rsp,0x8\n");
+//                 o.write("\tmovsd [rsp],xmm0\n");
+//                 right.emit_real(o);
+//                 o.write("\tmovsd xmm1,xmm0\n");
+//                 o.write("\tmovsd xmm0,[rsp]\n");
+//                 o.write("\tadd rsp,0x8\n");
+//                 o.write("\taddsd xmm0,xmm1\n");
+//             }
+//             else {
+//                 throw new Exception("unimplemented");
+//             }
+//         }
+//         override Type type() {
+//             return left.type;
+//         }
+// }

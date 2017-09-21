@@ -9,6 +9,7 @@ import exception;
 import lex;
 import node;
 import type;
+import func;
 
 void asm_head(OutBuffer o) {
     o.write("bits 64\n");
@@ -53,7 +54,7 @@ Node parseExpr(Lexer lexer) {
             if (right is null) {
                 throw new TopiException("right hand expression is expected", op.loc);
             }
-            return new AddNode(num, right);
+            return new FuncCall(op.str, [num, right]);
         }
         // unary
         throw new TopiException("unary operator + is not implemented yet", op.loc);
@@ -68,6 +69,8 @@ Node parseExpr(Lexer lexer) {
 
 void main()
 {
+    register_builtin();
+
     Input input = new Input(stdin);
     OutBuffer o = new OutBuffer();
 
