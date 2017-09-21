@@ -3,7 +3,7 @@
 extern int _func(void);
 
 void print_real(double v) {
-    printf("%lf\n", v);
+    printf("%.6lf\n", v);
     return;
 }
 void print_int(long v) {
