@@ -170,7 +170,29 @@ void register_builtin() {
 	o.write("\tpop rax\n");
 	o.write("\timul rcx\n");
     };
+    auto real_imul = function(Node[] args, OutBuffer o) {
+	args[0].emit_real(o);
+	o.write("\tsub rsp,0x8\n");
+	o.write("\tmovsd [rsp],xmm0\n");
+	args[1].emit_real(o);
+	o.write("\tmovsd xmm1,xmm0\n");
+	o.write("\tmovsd xmm0,[rsp]\n");
+	o.write("\tadd rsp,0x8\n");
+	o.write("\tmulsd xmm0,xmm1\n");
+    };
     succeeded = Func.register(new BuiltinFunc("*", [Type.Int, Type.Int], Type.Int, null, int_imul));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
+    succeeded = Func.register(new BuiltinFunc("*", [Type.Real, Type.Int], Type.Real, null, real_imul));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
+    succeeded = Func.register(new BuiltinFunc("*", [Type.Int, Type.Real], Type.Real, null, real_imul));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
+    succeeded = Func.register(new BuiltinFunc("*", [Type.Real, Type.Real], Type.Real, null, real_imul));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
