@@ -10,6 +10,8 @@ class Token {
             SYM_ADD,
             SYM_SUB,
             OP_MUL,
+            SYM_OPEN_PAREN,
+            SYM_CLOSE_PAREN,
             UNKNOWN,
         }
         dstring str;

@@ -80,6 +80,8 @@ test "+1" "1"
 test "+1.0" "1.000000"
 test "-1" "-1"
 test "-1.0" "-1.000000"
+test "(1+2)*3" "9"
+test "(1+2)*(4+5)" "27"
 
 if [ "$all" = "$passed" ]; then
   toilet -f smblock  "all test passed" --gay

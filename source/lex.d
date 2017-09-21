@@ -154,6 +154,10 @@ Token lex_symbol(Input input) {
             return new Token(Token.Type.SYM_SUB, "-", input.location);
         case '*':
             return new Token(Token.Type.OP_MUL, "*", input.location);
+        case '(':
+            return new Token(Token.Type.SYM_OPEN_PAREN, "(", input.location);
+        case ')':
+            return new Token(Token.Type.SYM_CLOSE_PAREN, ")", input.location);
         default:
             break;
     }
