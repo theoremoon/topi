@@ -23,9 +23,22 @@ Node parseNum(Lexer lexer) {
     return null;
 }
 
+Node parseFactor(Lexer lexer) {
+    auto uop = lexer.get;
+    if (uop.type == Token.Type.SYM_ADD) {
+        return parseFactor(lexer);
+    }
+    if (uop.type == Token.Type.SYM_SUB) {
+        return new FuncCall("*", [new IntNode(-1), parseFactor(lexer)]);
+    }
+    lexer.unget(uop);
+
+    return lexer.parseNum;
+}
+
 Node parseTerm(Lexer lexer, Node left = null) {
     if (left is null) {
-        left = lexer.parseNum;
+        left = lexer.parseFactor;
         if (left is null) { return null; }
     }
 
