@@ -4,14 +4,29 @@ import func;
 import node;
 import type;
 
-Node add_constexpr(T1, T2, T3)(Node[] args) {
+string bin_constexpr(string name, string op) {
+    return "Node " ~ name ~ `(T1, T2, T3)(Node[] args) {
+		if (auto arg1 = cast(T1)(args[0].eval)) {
+		    if (auto arg2 = cast(T2)(args[1].eval)) {
+			return new T3(arg1.v ` ~ op ~` arg2.v);
+		    } 
+		}
+		throw new Exception("Internal Error");
+	    }`;
+}
+
+mixin (bin_constexpr("add_constexpr", "+"));
+mixin (bin_constexpr("sub_constexpr", "-"));
+mixin (bin_constexpr("imul_constexpr", "*"));
+mixin (bin_constexpr("idiv_constexpr", "/"));
+
+Node neg_constexpr(T1)(Node[] args) {
     if (auto arg1 = cast(T1)(args[0].eval)) {
-	if (auto arg2 = cast(T2)(args[1].eval)) {
-	    return new T3(arg1.v + arg2.v);
-	} 
+	return new T1(-arg1.v);
     }
     throw new Exception("Internal Error");
 }
+
 
 
 void register_builtin() {
@@ -72,19 +87,19 @@ void register_builtin() {
 	o.write("\tadd rsp,0x8\n");
 	o.write("\tsubsd xmm0,xmm1\n");
     };
-    succeeded = Func.register(new BuiltinFunc("-", [Type.Int, Type.Int], Type.Int, null, int_sub));
+    succeeded = Func.register(new BuiltinFunc("-", [Type.Int, Type.Int], Type.Int, null, int_sub, &sub_constexpr!(IntNode, IntNode, IntNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("-", [Type.Real, Type.Int], Type.Real, null, real_sub));
+    succeeded = Func.register(new BuiltinFunc("-", [Type.Real, Type.Int], Type.Real, null, real_sub, &sub_constexpr!(RealNode, IntNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("-", [Type.Int, Type.Real], Type.Real, null, real_sub));
+    succeeded = Func.register(new BuiltinFunc("-", [Type.Int, Type.Real], Type.Real, null, real_sub, &sub_constexpr!(IntNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("-", [Type.Real, Type.Real], Type.Real, null, real_sub));
+    succeeded = Func.register(new BuiltinFunc("-", [Type.Real, Type.Real], Type.Real, null, real_sub, &sub_constexpr!(RealNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
@@ -108,19 +123,19 @@ void register_builtin() {
 	o.write("\tadd rsp,0x8\n");
 	o.write("\tmulsd xmm0,xmm1\n");
     };
-    succeeded = Func.register(new BuiltinFunc("*", [Type.Int, Type.Int], Type.Int, null, int_imul));
+    succeeded = Func.register(new BuiltinFunc("*", [Type.Int, Type.Int], Type.Int, null, int_imul, &imul_constexpr!(IntNode, IntNode, IntNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("*", [Type.Real, Type.Int], Type.Real, null, real_imul));
+    succeeded = Func.register(new BuiltinFunc("*", [Type.Real, Type.Int], Type.Real, null, real_imul, &imul_constexpr!(RealNode, IntNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("*", [Type.Int, Type.Real], Type.Real, null, real_imul));
+    succeeded = Func.register(new BuiltinFunc("*", [Type.Int, Type.Real], Type.Real, null, real_imul, &imul_constexpr!(IntNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("*", [Type.Real, Type.Real], Type.Real, null, real_imul));
+    succeeded = Func.register(new BuiltinFunc("*", [Type.Real, Type.Real], Type.Real, null, real_imul, &imul_constexpr!(RealNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
@@ -145,19 +160,19 @@ void register_builtin() {
 	o.write("\tadd rsp,0x8\n");
 	o.write("\tdivsd xmm0,xmm1\n");
     };
-    succeeded = Func.register(new BuiltinFunc("/", [Type.Int, Type.Int], Type.Int, null, int_idiv));
+    succeeded = Func.register(new BuiltinFunc("/", [Type.Int, Type.Int], Type.Int, null, int_idiv, &idiv_constexpr!(IntNode, IntNode, IntNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("/", [Type.Real, Type.Int], Type.Real, null, real_idiv));
+    succeeded = Func.register(new BuiltinFunc("/", [Type.Real, Type.Int], Type.Real, null, real_idiv, &idiv_constexpr!(RealNode, IntNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("/", [Type.Int, Type.Real], Type.Real, null, real_idiv));
+    succeeded = Func.register(new BuiltinFunc("/", [Type.Int, Type.Real], Type.Real, null, real_idiv, &idiv_constexpr!(IntNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("/", [Type.Real, Type.Real], Type.Real, null, real_idiv));
+    succeeded = Func.register(new BuiltinFunc("/", [Type.Real, Type.Real], Type.Real, null, real_idiv, &idiv_constexpr!(RealNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
@@ -173,11 +188,11 @@ void register_builtin() {
 	o.write("\txorps xmm0,xmm0\n");
 	o.write("\tsubsd xmm0,xmm1\n");
     };
-    succeeded = Func.register(new BuiltinFunc("-", [Type.Int], Type.Int, null, int_neg));
+    succeeded = Func.register(new BuiltinFunc("-", [Type.Int], Type.Int, null, int_neg, &neg_constexpr!(IntNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("-", [Type.Real], Type.Real, null, real_neg));
+    succeeded = Func.register(new BuiltinFunc("-", [Type.Real], Type.Real, null, real_neg, &neg_constexpr!(RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }

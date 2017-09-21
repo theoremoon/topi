@@ -51,12 +51,14 @@ fi
 if [ "$1" = "run" ]; then
   compile `cat`
   ./$bin
-
   exit
 fi
 if [ "$1" = "ast" ]; then
   $compiler -a
- 
+  exit
+fi
+if [ "$1" = "asm" ]; then
+  $compiler
   exit
 fi
 
