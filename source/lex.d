@@ -46,8 +46,19 @@ bool isFirstChar(dchar c) {
 bool isIdentChar(dchar c) {
     return isFirstChar(c) || isDigit(c);
 }
+bool isSpace(dchar c) {
+    return c == ' ';
+}
+
+void skip_space(Input input) {
+    dchar c = input.get;
+    while (c.isSpace) { c = input.get; }
+    input.unget(c);
+}
 
 Token lexOne(Input input) {
+    skip_space(input);
+
     auto token  = lex_symbol(input);
     if (token.type != Token.Type.UNKNOWN) { return token; }
     token = lex_number(input);

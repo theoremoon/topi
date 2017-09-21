@@ -9,37 +9,42 @@ all=0
 passed=0
 
 function compile {
-	echo "$1" | $compiler  > $asm
-	if [ $? -ne 0 ]; then
-		echo "Failed to Compile $1"
-		exit
-	fi
+  if [ $# -eq 0 ]; then
+    $compiler > $asm
+  else
+    echo "$1" | $compiler  > $asm
+  fi
 
-	nasm -f elf64 -o $obj $asm
-	if [ $? -ne 0 ]; then
-		echo "Failed to Assemble $asm"
-		exit
-	fi
+  if [ $? -ne 0 ]; then
+    echo "Failed to Compile $1"
+    exit
+  fi
 
-	gcc -o $bin $obj driver.c
-	if [ $? -ne 0 ]; then
-		echo "Failed to Compile $obj"
-		exit
-	fi
+  nasm -f elf64 -o $obj $asm
+  if [ $? -ne 0 ]; then
+    echo "Failed to Assemble $asm"
+    exit
+  fi
+
+  gcc -o $bin $obj driver.c
+  if [ $? -ne 0 ]; then
+    echo "Failed to Compile $obj"
+    exit
+  fi
 }
 
 function test {
-	compile "$1"
-	r=`./$bin`
+  compile "$1"
+  r=`./$bin`
 
-	all=$((all+1))
-	
-	if [ "$r" != "$2" ]; then
-		echo -e "\e[31mExpected $2 but got $r ($1)\e[m"
-	else
-		echo "test passed $1 == $2"
-		passed=$((passed+1))
-	fi
+  all=$((all+1))
+
+  if [ "$r" != "$2" ]; then
+    echo -e "\e[31mExpected $2 but got $r ($1)\e[m"
+  else
+    echo "test passed $1 == $2"
+    passed=$((passed+1))
+  fi
 }
 
 dub build > /dev/null
@@ -49,7 +54,7 @@ if [ $? -ne 0 ]; then
 fi
 
 if [ "$1" = "run" ]; then
-  compile `cat`
+  compile
   ./$bin
   exit
 fi
