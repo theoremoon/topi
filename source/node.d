@@ -1,4 +1,6 @@
+import std.algorithm;
 import std.outbuffer;
+import std.array;
 import std.conv;
 
 import type;
@@ -55,6 +57,9 @@ class IntNode : Node {
         override Type type() {
             return Type.Int;
         }
+        override string toString() {
+            return v.to!string;
+        }
 }
 
 class RealNode : Node {
@@ -82,6 +87,9 @@ class RealNode : Node {
         override Type type() {
             return Type.Real;
         }
+        override string toString() {
+            return v.to!string;
+        }
 }
 
 class FuncCall : Node {
@@ -105,40 +113,8 @@ class FuncCall : Node {
         override Type type() {
             return func.rettype;
         }
+        override string toString() {
+            return "("~fname.to!string~" "~args.map!(a => a.to!string).join(" ")~")";
+        }
 }
 
-// class AddNode : Node {
-//     private:
-//         Node left, right;
-//     public:
-//         this(Node left, Node right) {
-//             this.left = left;
-//             this.right = right;
-//         }
-//         override void emit(OutBuffer o) {
-//             if (left.type is Type.Int) {
-//                 left.emit(o);
-//                 o.write("\tpush rax\n");
-//                 right.emit_int(o);
-//                 o.write("\tmov rcx,rax\n");
-//                 o.write("\tpop rax\n");
-//                 o.write("\tadd rax,rcx\n");
-//             }
-//             else if (left.type is Type.Real) {
-//                 left.emit(o);
-//                 o.write("\tsub rsp,0x8\n");
-//                 o.write("\tmovsd [rsp],xmm0\n");
-//                 right.emit_real(o);
-//                 o.write("\tmovsd xmm1,xmm0\n");
-//                 o.write("\tmovsd xmm0,[rsp]\n");
-//                 o.write("\tadd rsp,0x8\n");
-//                 o.write("\taddsd xmm0,xmm1\n");
-//             }
-//             else {
-//                 throw new Exception("unimplemented");
-//             }
-//         }
-//         override Type type() {
-//             return left.type;
-//         }
-// }

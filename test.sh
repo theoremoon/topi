@@ -54,6 +54,11 @@ if [ "$1" = "run" ]; then
 
   exit
 fi
+if [ "$1" = "ast" ]; then
+  $compiler -a
+ 
+  exit
+fi
 
 test "1234" "1234"
 test "0xFF" "255"
