@@ -5,6 +5,7 @@ import std.conv;
 
 import type;
 import func;
+import asmstate;
 
 class Node {
     public:
@@ -72,9 +73,12 @@ class RealNode : Node {
             this.v = v;
         }
         override void emit(OutBuffer o) {
+            auto state = AsmState.cur;
+            auto idx = state.assign(8);
+
             o.writef("\tmov rax,%d\n", double2long(v));
-            o.writef("\tmov [rbp-8],rax\n");
-            o.write("\tmovupd xmm0,[rbp-8]\n");
+            o.writef("\tmov [rbp-%d],rax\n", idx);
+            o.writef("\tmovupd xmm0,[rbp-%d]\n", idx);
             // o.write("\tcall print_real\n");
         }
         override Type type() { return Type.Real; }

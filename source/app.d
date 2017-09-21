@@ -3,6 +3,7 @@ import std.stdio;
 import std.format;
 import std.outbuffer;
 
+import asmstate;
 import type;
 import input;
 import lex;
@@ -25,7 +26,6 @@ void main(string[] args)
     register_builtin();
 
     Input input = new Input(stdin);
-    OutBuffer o = new OutBuffer();
 
     auto lexer = new Lexer(input);
     auto node = parseExpr(lexer);
@@ -34,14 +34,8 @@ void main(string[] args)
         writeln(node.to!string);
     }
     else {
-        asm_head(o);
-        o.write("_func:\n");
-        o.write("\tpush rbp\n");
-        o.write("\tmov rbp,rsp\n");
-        o.write("\tsub rsp,0x10\n");
-
+        OutBuffer o = new OutBuffer();
         node.emit(o);
-
         if (node.type is Type.Int) {
             o.write("\tmov rdi,rax\n");
             o.write("\tcall print_int\n");
@@ -49,10 +43,13 @@ void main(string[] args)
         else if (node.type is Type.Real) {
             o.write("\tcall print_real\n");
         }
+        OutBuffer header = new OutBuffer();
+        asm_head(header);
+        AsmState.cur.emit_header(header, "_func");
+        AsmState.cur.emit_footer(o);
 
-        o.write("\tleave\n");
-        o.write("\tret\n");
-
-        writeln(o.toString);
+        write(header.toString);
+        write(o.toString);
+        writeln();
     }
 }
