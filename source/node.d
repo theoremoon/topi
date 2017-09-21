@@ -14,7 +14,7 @@ void emit_int(Node node, OutBuffer o) {
     }
     else if (node.type is Type.Real) {
         node.emit(o);
-        o.write("\tcvtsd2si eax, xmm0\n");
+        o.write("\tcvtsd2si rax, xmm0\n");
     }
     else {
         throw new Exception("unimplemented");
