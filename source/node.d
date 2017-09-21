@@ -8,8 +8,10 @@ import func;
 
 class Node {
     public:
+        bool is_constexpr() { return false; }
         abstract void emit(OutBuffer o);
         abstract Type type();
+        Node eval() { return this; }
 }
 
 void emit_int(Node node, OutBuffer o) {
@@ -47,24 +49,14 @@ class IntNode : Node {
         this(long v) {
             this.v = v;
         }
-        override void emit(OutBuffer o) {
-            o.writef("\tmov rax,%d\n", v);
-            // o.write("\tpush rdi\n");
-            // o.writef("\tmov rdi,%d\n", v);
-            // o.write("\tcall print_int\n");
-            // o.write("\tpop rdi\n");
-        }
-        override Type type() {
-            return Type.Int;
-        }
-        override string toString() {
-            return v.to!string;
-        }
+        override void emit(OutBuffer o) { o.writef("\tmov rax,%d\n", v); }
+        override Type type() { return Type.Int; }
+        override bool is_constexpr() { return true; }
+        override string toString() { return v.to!string; }
 }
 
 class RealNode : Node {
     private:
-        double v;
         long double2long(double v) {
             import std.bitmanip;
             import std.system : Endian;
@@ -75,6 +67,7 @@ class RealNode : Node {
             return buf.peek!(long, Endian.littleEndian);
         }
     public:
+        double v;
         this(double v) {
             this.v = v;
         }
@@ -84,12 +77,9 @@ class RealNode : Node {
             o.write("\tmovupd xmm0,[rbp-8]\n");
             // o.write("\tcall print_real\n");
         }
-        override Type type() {
-            return Type.Real;
-        }
-        override string toString() {
-            return v.to!string;
-        }
+        override Type type() { return Type.Real; }
+        override bool is_constexpr() { return true; }
+        override string toString() { return v.to!string; }
 }
 
 class FuncCall : Node {
@@ -107,14 +97,17 @@ class FuncCall : Node {
             }
         }
 
-        override void emit(OutBuffer o) {
+        override bool is_constexpr() { return func.is_constexpr; }
+        override void emit(OutBuffer o) { 
             func.call(args, o);
         }
-        override Type type() {
-            return func.rettype;
-        }
+        override Type type() { return func.rettype; }
         override string toString() {
             return "("~fname.to!string~" "~args.map!(a => a.to!string).join(" ")~")";
+        }
+        override Node eval() {
+            if (!is_constexpr) { throw new Exception("Internal error"); }
+            return func.eval(args);
         }
 }
 

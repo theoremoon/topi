@@ -15,6 +15,7 @@ class Func {
 	Type[] argtypes;
 	Type rettype;
 	EmitT emitfunc;
+	bool constexpr_flag = false;
 
 	static bool register(Func f) {
 	    if (f.signature in funcs) {
@@ -59,30 +60,52 @@ class Func {
 	    }
 	}
 	void call(Node[] args, OutBuffer o) {
-	    // o.write("\tcall %s\n", signature);
+	    // constexpr
+	    if (is_constexpr && all(args.map!(a => a.is_constexpr))) {
+		eval(args).emit(o);
+	    }
+	    // not constexpr
+	    else {
+	    }
+	}
+	Node eval(Node[] args) {
+	    return null;
 	}
 
 	Type type() {
 	    return rettype;
+	}
+	bool is_constexpr() {
+	    return constexpr_flag;
 	}
 }
 
 class BuiltinFunc : Func {
     public:
 	alias CallT = void function(Node[], OutBuffer);
+	alias ConstexprT = Node function(Node[]); 
 	CallT callfunc;
+	ConstexprT constexprfunc;
 
-	this(dstring name, Type[] argtypes, Type rettype, EmitT emitfunc, CallT callfunc) {
+	this(dstring name, Type[] argtypes, Type rettype, EmitT emitfunc, CallT callfunc, ConstexprT constexprfunc = null) {
 	    super(name, argtypes, rettype, emitfunc);
 	    this.callfunc = callfunc;
+	    this.constexprfunc = constexprfunc;
 	}
 	override void call(Node[] args, OutBuffer o) {
-	    if (callfunc is null) {
-		super.call(args, o);
+	    // constexpr
+	    if (is_constexpr && all(args.map!(a=>a.is_constexpr))) {
+		eval(args).emit(o);
+		return;
 	    }
-	    else {
-		callfunc(args, o);
-	    }
+	    // not constexpr
+	    callfunc(args, o);
+	}
+	override Node eval(Node[] args) {
+	    return constexprfunc(args);
+	}
+	override bool is_constexpr() {
+	    return constexprfunc !is null;
 	}
 }
 
