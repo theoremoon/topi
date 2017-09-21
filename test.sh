@@ -87,6 +87,8 @@ test "5/2" "2"
 test "5.0/2" "2.500000"
 test "5/2.0" "2.500000"
 test "10/3.0" "3.333333"
+test "1+2*3/4" "2"
+test "1+2*3/4.0" "2.500000"
 
 if [ "$all" = "$passed" ]; then
   toilet -f smblock  "all test passed" --gay

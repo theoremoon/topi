@@ -61,7 +61,7 @@ Node parseTerm(Lexer lexer, Node left = null) {
 
     // binary *
     if (op.type == Token.Type.OP_MUL) {
-        auto right = lexer.parseTerm;
+        auto right = lexer.parseFactor;
         if (right is null) {
             throw new TopiException("expected right hand expr", lexer.loc);
         }
@@ -69,7 +69,7 @@ Node parseTerm(Lexer lexer, Node left = null) {
     }
     // binary /
     if (op.type == Token.Type.SYM_SLASH) {
-        auto right = lexer.parseTerm;
+        auto right = lexer.parseFactor;
         if (right is null) {
             throw new TopiException("expected right hand expr", lexer.loc);
         }
