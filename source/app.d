@@ -7,7 +7,7 @@ import type;
 import input;
 import lex;
 import node;
-import func;
+import builtin;
 import parse;
 
 void asm_head(OutBuffer o) {
