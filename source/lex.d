@@ -150,6 +150,8 @@ Token lex_symbol(Input input) {
     switch (c) {
         case '+':
             return new Token(Token.Type.SYM_ADD, "+", input.location);
+        case '-':
+            return new Token(Token.Type.SYM_ADD, "-", input.location);
         default:
             break;
     }
