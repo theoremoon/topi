@@ -152,4 +152,24 @@ void register_builtin() {
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
+
+    // neg
+    auto int_neg = function(Node[] args, OutBuffer o) {
+	args[0].emit_int(o);
+	o.write("\tneg rax\n");
+    };
+    auto real_neg = function(Node[] args, OutBuffer o) {
+	args[0].emit_real(o);
+	o.write("\tmovsd xmm1,xmm0\n");
+	o.write("\txorps xmm0,xmm0\n");
+	o.write("\tsubsd xmm0,xmm1\n");
+    };
+    succeeded = Func.register(new BuiltinFunc("-", [Type.Int], Type.Int, null, int_neg));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
+    succeeded = Func.register(new BuiltinFunc("-", [Type.Real], Type.Real, null, real_neg));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
 }

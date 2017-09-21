@@ -31,7 +31,8 @@ Node parseFactor(Lexer lexer) {
     }
     // unary -
     if (uop.type == Token.Type.SYM_SUB) {
-        return new FuncCall("*", [new IntNode(-1), parseFactor(lexer)]);
+        return new FuncCall("-", [lexer.parseFactor]);
+        // return new FuncCall("*", [new IntNode(-1), parseFactor(lexer)]);
     }
     // (expr)
     if (uop.type == Token.Type.SYM_OPEN_PAREN) {
