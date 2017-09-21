@@ -1,6 +1,9 @@
 .dub
 docs.json
 __dummy.html
+*.asm
 *.o
 *.obj
+*.out
+tags
 __test__*__
