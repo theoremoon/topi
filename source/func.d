@@ -196,4 +196,41 @@ void register_builtin() {
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
+
+    // idiv
+    auto int_idiv = function(Node[] args, OutBuffer o) {
+	args[0].emit_int(o);
+	o.write("\tpush rax\n");
+	args[1].emit_int(o);
+	o.write("\tmov rbx,rax\n");
+	o.write("\tpop rax\n");
+	o.write("\txor rdx,rdx\n");
+	o.write("\tidiv rbx\n");
+    };
+    auto real_idiv = function(Node[] args, OutBuffer o) {
+	args[0].emit_real(o);
+	o.write("\tsub rsp,0x8\n");
+	o.write("\tmovsd [rsp],xmm0\n");
+	args[1].emit_real(o);
+	o.write("\tmovsd xmm1,xmm0\n");
+	o.write("\tmovsd xmm0,[rsp]\n");
+	o.write("\tadd rsp,0x8\n");
+	o.write("\tdivsd xmm0,xmm1\n");
+    };
+    succeeded = Func.register(new BuiltinFunc("/", [Type.Int, Type.Int], Type.Int, null, int_idiv));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
+    succeeded = Func.register(new BuiltinFunc("/", [Type.Real, Type.Int], Type.Real, null, real_idiv));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
+    succeeded = Func.register(new BuiltinFunc("/", [Type.Int, Type.Real], Type.Real, null, real_idiv));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
+    succeeded = Func.register(new BuiltinFunc("/", [Type.Real, Type.Real], Type.Real, null, real_idiv));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
 }

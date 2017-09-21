@@ -9,6 +9,7 @@ class Token {
             REAL,
             SYM_ADD,
             SYM_SUB,
+            SYM_SLASH,
             OP_MUL,
             SYM_OPEN_PAREN,
             SYM_CLOSE_PAREN,

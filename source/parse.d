@@ -67,6 +67,14 @@ Node parseTerm(Lexer lexer, Node left = null) {
         }
         return parseTerm(lexer, new FuncCall(op.str, [left, right]));
     }
+    // binary /
+    if (op.type == Token.Type.SYM_SLASH) {
+        auto right = lexer.parseTerm;
+        if (right is null) {
+            throw new TopiException("expected right hand expr", lexer.loc);
+        }
+        return parseTerm(lexer, new FuncCall(op.str, [left, right]));
+    }
     // otherwise
     lexer.unget(op);
     return left;
