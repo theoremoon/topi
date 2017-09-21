@@ -31,8 +31,8 @@ Node neg_constexpr(T1)(Node[] args) {
 
 void register_builtin() {
     bool succeeded;
+
     //add
-    
     auto int_add = function(Node[] args, OutBuffer o) {
 	args[0].emit_int(o);
 	o.write("\tpush rax\n");
@@ -193,6 +193,23 @@ void register_builtin() {
 	throw new Exception("Internal Error");
     }
     succeeded = Func.register(new BuiltinFunc("-", [Type.Real], Type.Real, null, real_neg, &neg_constexpr!(RealNode)));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
+
+    // print
+    succeeded = Func.register(new BuiltinFunc("print", [Type.Int], Type.Void, null, function(Node[] args, OutBuffer o) {
+	args[0].emit_int(o);
+	o.write("\tmov rdi,rax\n");
+	o.write("\tcall print_int\n");
+    }));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
+    succeeded = Func.register(new BuiltinFunc("print", [Type.Real], Type.Void, null, function(Node[] args, OutBuffer o) {
+	args[0].emit_real(o);
+	o.write("\tcall print_real\n");
+    }));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }

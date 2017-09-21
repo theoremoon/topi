@@ -36,13 +36,7 @@ void main(string[] args)
     else {
         OutBuffer o = new OutBuffer();
         node.emit(o);
-        if (node.type is Type.Int) {
-            o.write("\tmov rdi,rax\n");
-            o.write("\tcall print_int\n");
-        }
-        else if (node.type is Type.Real) {
-            o.write("\tcall print_real\n");
-        }
+
         OutBuffer header = new OutBuffer();
         asm_head(header);
         AsmState.cur.emit_header(header, "_func");

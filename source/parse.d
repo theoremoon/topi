@@ -23,6 +23,38 @@ Node parseNum(Lexer lexer) {
     return null;
 }
 
+Node parseFuncCall(Lexer lexer) {
+    auto fname = lexer.get;
+    if (fname.type != Token.Type.IDENT) {
+        lexer.unget(fname);
+        return null;
+    }
+
+    auto open = lexer.get;
+    if (open.type != Token.Type.SYM_OPEN_PAREN) {
+        lexer.unget(fname);
+        lexer.unget(open);
+        return null;
+    }
+    
+    Node[] exprs = [];
+    while (true) {
+        auto expr = lexer.parseExpr;
+        if (expr is null) { break; }
+        exprs ~= expr;
+        auto comma = lexer.get;
+        if (comma.type != Token.Type.SYM_COMMA) {
+            lexer.unget(comma);
+            break;
+        }
+    }
+    auto close = lexer.get;
+    if (close.type != Token.Type.SYM_CLOSE_PAREN) {
+        throw new TopiException("CLOSE PARENTHES ) is required", close.loc);
+    }
+    return new FuncCall(fname.str, exprs);
+}
+
 Node parseFactor(Lexer lexer) {
     auto uop = lexer.get;
     // unary +
@@ -33,6 +65,22 @@ Node parseFactor(Lexer lexer) {
     if (uop.type == Token.Type.SYM_SUB) {
         return new FuncCall("-", [lexer.parseFactor]);
         // return new FuncCall("*", [new IntNode(-1), parseFactor(lexer)]);
+    }
+    // identifier
+    if (uop.type == Token.Type.IDENT) {
+        auto paren = lexer.get;
+        // func call
+        if (paren.type == Token.Type.SYM_OPEN_PAREN) {
+            lexer.unget(paren);
+            lexer.unget(uop);
+
+            auto call = parseFuncCall(lexer);
+            if (call is null) {
+                throw new TopiException("function call syntax is expected", lexer.loc);
+            }
+            return call;
+        }
+        throw new TopiException("variable like is unimplemented", lexer.loc);
     }
     // (expr)
     if (uop.type == Token.Type.SYM_OPEN_PAREN) {

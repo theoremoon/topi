@@ -9,9 +9,9 @@ import node;
 class Func {
     public:
 	alias EmitT = void function(OutBuffer);
-	static Func[dstring] funcs;
+	static Func[string] funcs;
 
-	dstring name;
+	string name;
 	Type[] argtypes;
 	Type rettype;
 	EmitT emitfunc;
@@ -24,18 +24,18 @@ class Func {
 	    funcs[f.signature] = f;
 	    return true;
 	}
-	static dstring signature(dstring name, Node[] args) {
+	static string signature(string name, Node[] args) {
 	    Type[] argtypes = args.map!(a => a.type).array;
 	    return signature(name, argtypes);
 	}
-	static dstring signature(dstring name, Type[] argtypes) {
-	    return name~"("~argtypes.map!(to!dstring).join(",")~")";
+	static string signature(string name, Type[] argtypes) {
+	    return name~"("~argtypes.map!(to!string).join(",")~")";
 	}
-	static Func get(dstring name, Node[] args) {
+	static Func get(string name, Node[] args) {
 	    Type[] argtypes = args.map!(a => a.type).array;
 	    return get(name, argtypes);
 	}
-	static Func get(dstring name, Type[] argtypes) {
+	static Func get(string name, Type[] argtypes) {
 	    auto sign = signature(name, argtypes);
 	    if (sign !in funcs) {
 		return null;
@@ -43,14 +43,14 @@ class Func {
 	    return funcs[sign];
 	}
 
-	this(dstring name, Type[] argtypes, Type rettype, EmitT emitfunc) {
+	this(string name, Type[] argtypes, Type rettype, EmitT emitfunc) {
 	    this.name = name;
 	    this.argtypes = argtypes;
 	    this.rettype = rettype;
 	    this.emitfunc = emitfunc;
 	}
 
-	dstring signature() {
+	string signature() {
 	    return Func.signature(name, argtypes);
 	}
 	void emit(OutBuffer o) {
@@ -87,7 +87,7 @@ class BuiltinFunc : Func {
 	CallT callfunc;
 	ConstexprT constexprfunc;
 
-	this(dstring name, Type[] argtypes, Type rettype, EmitT emitfunc, CallT callfunc, ConstexprT constexprfunc = null) {
+	this(string name, Type[] argtypes, Type rettype, EmitT emitfunc, CallT callfunc, ConstexprT constexprfunc = null) {
 	    super(name, argtypes, rettype, emitfunc);
 	    this.callfunc = callfunc;
 	    this.constexprfunc = constexprfunc;

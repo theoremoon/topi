@@ -88,11 +88,11 @@ class RealNode : Node {
 
 class FuncCall : Node {
     public:
-        dstring fname;
+        string fname;
         Node[] args;
         Func func;
 
-        this(dstring fname, Node[] args) {
+        this(string fname, Node[] args) {
             this.fname = fname;
             this.args = args;
             this.func = Func.get(fname, args);

@@ -40,12 +40,21 @@ bool isHex(dchar c) {
 bool isDigit(dchar c) {
     return '0' <= c && c <= '9';
 }
+bool isFirstChar(dchar c) {
+    return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+}
+bool isIdentChar(dchar c) {
+    return isFirstChar(c) || isDigit(c);
+}
 
 Token lexOne(Input input) {
     auto token  = lex_symbol(input);
-    if (token !is null) { return token; }
+    if (token.type != Token.Type.UNKNOWN) { return token; }
     token = lex_number(input);
-    if (token !is null) { return token; }
+    if (token.type != Token.Type.UNKNOWN) { return token; }
+    token = lex_identifier(input);
+    if (token.type != Token.Type.UNKNOWN) { return token; }
+
     return null;
 }
 
@@ -74,11 +83,11 @@ Token lex_real(Input input) {
     if (buf2.length == 0) {
         input.unget('.');
         input.unget(c);
-        return new Token(Token.Type.DIGIT, buf.idup, input.location);
+        return new Token(Token.Type.DIGIT, buf.to!string, input.location);
     }
     input.unget(c);
     // real value
-    return new Token(Token.Type.REAL, (buf ~ "." ~ buf2).to!dstring, input.location);
+    return new Token(Token.Type.REAL, (buf ~ "." ~ buf2).to!string, input.location);
 }
 
 Token lex_hex(Input input) {
@@ -98,7 +107,7 @@ Token lex_hex(Input input) {
     if (buf.length == 0) {
         throw new TopiException("Invalid number 0x. hexadecimal number is expected.", input.location);
     }
-    return new Token(Token.Type.HEX, buf.idup, input.location);
+    return new Token(Token.Type.HEX, buf.to!string, input.location);
 }
 
 Token lex_number(Input input) {
@@ -137,11 +146,11 @@ Token lex_number(Input input) {
             return lex_real(input);
         }
         // digit
-        return new Token(Token.Type.DIGIT, buf.idup, input.location);
+        return new Token(Token.Type.DIGIT, buf.to!string, input.location);
     }
     // not a number
     input.unget(c);
-    return null;
+    return new Token(Token.Type.UNKNOWN, c.to!string, input.location);
 }
 
 Token lex_symbol(Input input) {
@@ -156,6 +165,8 @@ Token lex_symbol(Input input) {
             return new Token(Token.Type.OP_MUL, "*", input.location);
         case '/':
             return new Token(Token.Type.SYM_SLASH, "/", input.location);
+        case ',':
+            return new Token(Token.Type.SYM_COMMA, ",", input.location);
         case '(':
             return new Token(Token.Type.SYM_OPEN_PAREN, "(", input.location);
         case ')':
@@ -164,5 +175,21 @@ Token lex_symbol(Input input) {
             break;
     }
     input.unget(c);
-    return null;
+    return new Token(Token.Type.UNKNOWN, c.to!string, input.location);
+}
+
+Token lex_identifier(Input input) {
+    dchar c = input.get;
+    if (! c.isFirstChar) {
+        input.unget(c);
+        return new Token(Token.Type.UNKNOWN, c.to!string, input.location);
+    }
+    dchar[] buf = [];
+    while (c.isIdentChar) {
+        buf ~= c;
+        c = input.get;
+    }
+    input.unget(c);
+
+    return new Token(Token.Type.IDENT, buf.to!string, input.location);
 }
