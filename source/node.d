@@ -26,6 +26,10 @@ void emit_real(Node node, OutBuffer o) {
     if (node.type is Type.Real) {
         node.emit(o);
     }
+    else if (auto intNode = cast(IntNode)node) {
+        auto realNode = new RealNode(cast(double)intNode.v);
+        realNode.emit(o);
+    }
     else if (node.type is Type.Int) {
         node.emit(o);
         o.write("\tcvtsi2sd xmm0, rax\n");
@@ -36,9 +40,8 @@ void emit_real(Node node, OutBuffer o) {
 }
 
 class IntNode : Node {
-    private:
-        long v;
     public:
+        long v;
         this(long v) {
             this.v = v;
         }
