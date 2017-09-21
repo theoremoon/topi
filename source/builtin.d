@@ -4,6 +4,15 @@ import func;
 import node;
 import type;
 
+Node add_constexpr(T1, T2, T3)(Node[] args) {
+    if (auto arg1 = cast(T1)(args[0].eval)) {
+	if (auto arg2 = cast(T2)(args[1].eval)) {
+	    return new T3(arg1.v + arg2.v);
+	} 
+    }
+    throw new Exception("Internal Error");
+}
+
 
 void register_builtin() {
     bool succeeded;
@@ -27,47 +36,19 @@ void register_builtin() {
 	o.write("\tadd rsp,0x8\n");
 	o.write("\taddsd xmm0,xmm1\n");
     };
-    succeeded = Func.register(new BuiltinFunc("+", [Type.Int, Type.Int], Type.Int, null, int_add, function(Node[] args) {
-	if (auto arg1 = cast(IntNode)(args[0].eval)) {
-	    if (auto arg2 = cast(IntNode)(args[1].eval)) {
-		return new IntNode(arg1.v + arg2.v);
-	    } 
-	}
-	throw new Exception("Internal Error");
-    }));
+    succeeded = Func.register(new BuiltinFunc("+", [Type.Int, Type.Int], Type.Int, null, int_add, &add_constexpr!(IntNode, IntNode, IntNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("+", [Type.Int, Type.Real], Type.Real, null, real_add, function(Node[] args) {
-	if (auto arg1 = cast(IntNode)(args[0].eval)) {
-	    if (auto arg2 = cast(RealNode)(args[1].eval)) {
-		return new RealNode(arg1.v + arg2.v);
-	    } 
-	}
-	throw new Exception("Internal Error");
-    }));
+    succeeded = Func.register(new BuiltinFunc("+", [Type.Int, Type.Real], Type.Real, null, real_add, &add_constexpr!(IntNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("+", [Type.Real, Type.Int], Type.Real, null, real_add, function(Node[] args) {
-	if (auto arg1 = cast(RealNode)(args[0].eval)) {
-	    if (auto arg2 = cast(IntNode)(args[1].eval)) {
-		return new RealNode(arg1.v + arg2.v);
-	    } 
-	}
-	throw new Exception("Internal Error");
-    }));
+    succeeded = Func.register(new BuiltinFunc("+", [Type.Real, Type.Int], Type.Real, null, real_add, &add_constexpr!(RealNode, IntNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("+", [Type.Real, Type.Real], Type.Real, null, real_add, function(Node[] args) {
-	if (auto arg1 = cast(RealNode)(args[0].eval)) {
-	    if (auto arg2 = cast(RealNode)(args[1].eval)) {
-		return new RealNode(arg1.v + arg2.v);
-	    } 
-	}
-	throw new Exception("Internal Error");
-    }));
+    succeeded = Func.register(new BuiltinFunc("+", [Type.Real, Type.Real], Type.Real, null, real_add, &add_constexpr!(RealNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
