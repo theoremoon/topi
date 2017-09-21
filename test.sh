@@ -5,6 +5,9 @@ asm='tmp.asm'
 obj='tmp.o'
 bin='tmp.out'
 
+all=0
+passed=0
+
 function compile {
 	echo "$1" | $compiler  > $asm
 	if [ $? -ne 0 ]; then
@@ -28,12 +31,15 @@ function compile {
 function test {
 	compile "$1"
 	r=`./$bin`
+
+	all=$((all+1))
 	
 	if [ "$r" != "$2" ]; then
-		echo "Expected $2 but got $r ($1)"
-		exit
+		echo -e "\e[31mExpected $2 but got $r ($1)\e[m"
+	else
+		echo "test passed $1 == $2"
+		passed=$((passed+1))
 	fi
-	echo "test passed $1 == $2"
 }
 
 dub build > /dev/null
@@ -55,7 +61,11 @@ test "1.234" "1.234000"
 test "0.234" "0.234000"
 test "12+34" "46"
 test "12.3+4" "16.300000"
-test "12+3.4" "15"
+test "12+3.4" "15.400000"
 test "1.2+3.4" "4.600000"
 
-toilet -f smblock  "all test passed" --gay
+if [ "$all" = "$passed" ]; then
+  toilet -f smblock  "all test passed" --gay
+else
+  echo -e "\e[31msome test failed ($((all-passed))/${all})\e[m"
+fi
