@@ -154,3 +154,40 @@ Node parseExpr(Lexer lexer, Node left = null) {
     lexer.unget(op);
     return left;
 }
+
+Node parseBlock(Lexer lexer) {
+    auto open = lexer.get;
+    if (open.type != Token.Type.SYM_OPEN_MUSTACHE) {
+        lexer.unget(open);
+        return null;
+    }
+
+    Node[] exprs = [];
+    while (true) {
+        auto expr = lexer.parseExpr;
+        if (expr is null) { break; }
+        exprs ~= expr;
+        auto nl = lexer.get;
+        if (nl.type != Token.Type.NEWLINE) {
+            lexer.unget(nl);
+            break;
+        }
+    }
+
+    auto close = lexer.get;
+    if (close.type != Token.Type.SYM_CLOSE_MUSTACHE) {
+        throw new TopiException("expected }", close.loc);
+    }
+    return new BlockNode(exprs);
+}
+
+Node parseToplevel(Lexer lexer) {
+    Node node;
+    node = lexer.parseBlock;
+    if (node !is null) { return node; }
+
+    node = lexer.parseExpr;
+    if (node !is null) { return node; }
+
+    return null;
+}

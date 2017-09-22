@@ -73,6 +73,16 @@ class Input {
 		}
             }
             loc.column++;
+
+            if (c == '\r' || c == '\n') {
+                loc.column = 1;
+                loc.line++;
+                if (c == '\r') {
+                    dchar c2 = get;
+                    if (c2 != '\n') { unget(c2); }
+                    c = '\n';
+                }
+            }
             return c;
         }
         void unget(dchar c) {

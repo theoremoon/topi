@@ -28,7 +28,7 @@ void main(string[] args)
     Input input = new Input(stdin);
 
     auto lexer = new Lexer(input);
-    auto node = parseExpr(lexer);
+    auto node = parseToplevel(lexer);
 
     if (args.length > 1 && args[1] == "-a") {
         writeln(node.to!string);

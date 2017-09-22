@@ -182,6 +182,12 @@ Token lex_symbol(Input input) {
             return new Token(Token.Type.SYM_OPEN_PAREN, "(", input.location);
         case ')':
             return new Token(Token.Type.SYM_CLOSE_PAREN, ")", input.location);
+        case '{':
+            return new Token(Token.Type.SYM_OPEN_MUSTACHE, "{", input.location);
+        case '}':
+            return new Token(Token.Type.SYM_CLOSE_MUSTACHE, "}", input.location);
+        case '\n':
+            return new Token(Token.Type.NEWLINE, "\n", input.location);
         default:
             break;
     }

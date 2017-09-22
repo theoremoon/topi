@@ -115,3 +115,26 @@ class FuncCall : Node {
         }
 }
 
+
+class BlockNode : Node {
+    public:
+        Node[] exprs;
+
+        this(Node[] exprs) {
+            this.exprs = exprs;
+        }
+
+        override bool is_constexpr() {
+            return all(exprs.map!(a => a.is_constexpr));
+        }
+        override void emit(OutBuffer o) {
+            foreach (expr; exprs) { expr.emit(o); }
+        }
+        override Type type() { return Type.Void; } 
+        override string toString() {
+            return "{"~exprs.map!(a => a.to!string).join(" ")~"}";
+        }
+        override Node eval() {
+            throw new Exception("internal error");
+        }
+}

@@ -14,6 +14,9 @@ class Token {
             SYM_OPEN_PAREN,
             SYM_CLOSE_PAREN,
             SYM_COMMA,
+            SYM_OPEN_MUSTACHE,
+            SYM_CLOSE_MUSTACHE,
+            NEWLINE,
             IDENT,
             UNKNOWN,
         }
