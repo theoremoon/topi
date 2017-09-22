@@ -56,23 +56,23 @@ Node parseFuncCall(Lexer lexer) {
 }
 
 Node parseFactor(Lexer lexer) {
-    auto uop = lexer.get;
+    auto tok = lexer.get;
     // unary +
-    if (uop.type == Token.Type.SYM_ADD) {
+    if (tok.type == Token.Type.SYM_ADD) {
         return parseFactor(lexer);
     }
     // unary -
-    if (uop.type == Token.Type.SYM_SUB) {
+    if (tok.type == Token.Type.SYM_SUB) {
         return new FuncCall("-", [lexer.parseFactor]);
         // return new FuncCall("*", [new IntNode(-1), parseFactor(lexer)]);
     }
     // identifier
-    if (uop.type == Token.Type.IDENT) {
+    if (tok.type == Token.Type.IDENT) {
         auto paren = lexer.get;
         // func call
         if (paren.type == Token.Type.OPEN_PAREN) {
             lexer.unget(paren);
-            lexer.unget(uop);
+            lexer.unget(tok);
 
             auto call = parseFuncCall(lexer);
             if (call is null) {
@@ -80,10 +80,12 @@ Node parseFactor(Lexer lexer) {
             }
             return call;
         }
-        throw new TopiException("variable like is unimplemented", lexer.loc);
+
+        // variable
+        return new VarNode(tok.str);
     }
     // (expr)
-    if (uop.type == Token.Type.OPEN_PAREN) {
+    if (tok.type == Token.Type.OPEN_PAREN) {
         auto expr = lexer.parseExpr;
         if (expr is null) {
             throw new TopiException("expression is required for (expr)", lexer.loc);
@@ -94,7 +96,7 @@ Node parseFactor(Lexer lexer) {
         }
         return expr;
     }
-    lexer.unget(uop);
+    lexer.unget(tok);
 
     return lexer.parseNum;
 }

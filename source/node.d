@@ -4,6 +4,7 @@ import std.format;
 import std.array;
 import std.conv;
 
+import var;
 import env;
 import type;
 import func;
@@ -153,9 +154,13 @@ class DeclNode : Node {
             this.varname = varname;
         }
         override void emit(OutBuffer o) {
-            // FIXME
-            if (Env.cur.getType(typename) is null) {
+            Type t = Env.cur.getType(typename);
+            if (t is null) {
                 throw new Exception("type %s is not defiend".format(typename)); 
+            }
+            bool success = Env.cur.registerVar(new Var(t, varname));
+            if (!success) {
+                throw new Exception("variable %s id already defined".format(varname));
             }
         }
         override Type type() { return Type.Void; }
@@ -182,4 +187,32 @@ class DeclBlock : Node {
         }
         override Type type() { return Type.Void; }
         override string toString() { return "("~decls.map!(a=>a.to!string).join(" ")~")"; }
+}
+
+class VarNode : Node {
+    public:
+        string varname;
+        this(string varname) {
+            this.varname = varname;
+        }
+
+        // FIXME
+        override bool is_constexpr() { return false; }
+        override void emit(OutBuffer o) { 
+            auto var = Env.cur.getVar(varname);
+            if (var is null) {
+                throw new Exception("undefined name %s".format(varname));
+            }
+            throw new Exception("unimplemented");
+        }
+        override Type type() {
+            auto var = Env.cur.getVar(varname);
+            if (var is null) {
+                throw new Exception("undefined name %s".format(varname));
+            }
+            return var.type;
+        }
+        override string toString() {
+            return "("~varname~")";
+        }
 }
