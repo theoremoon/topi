@@ -83,7 +83,6 @@ class RealNode : Node {
             o.writef("\tmov rax,%d\n", double2long(v));
             o.writef("\tmov [rbp-%d],rax\n", idx);
             o.writef("\tmovupd xmm0,[rbp-%d]\n", idx);
-            // o.write("\tcall print_real\n");
         }
         override Type type() { return Type.Real; }
         override bool is_constexpr() { return true; }
