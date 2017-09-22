@@ -162,11 +162,11 @@ Node parseBlock(Lexer lexer) {
         return null;
     }
 
-    Node[] exprs = [];
+    Node[] nodes = [];
     while (true) {
-        auto expr = lexer.parseExpr;
-        if (expr is null) { break; }
-        exprs ~= expr;
+        auto node = lexer.parseToplevel;
+        if (node is null) { break; }
+        nodes ~= node;
         auto nl = lexer.get;
         if (nl.type != Token.Type.NEWLINE) {
             lexer.unget(nl);
@@ -178,7 +178,7 @@ Node parseBlock(Lexer lexer) {
     if (close.type != Token.Type.SYM_CLOSE_MUSTACHE) {
         throw new TopiException("expected }", close.loc);
     }
-    return new BlockNode(exprs);
+    return new BlockNode(nodes);
 }
 
 Node parseToplevel(Lexer lexer) {
