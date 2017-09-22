@@ -1,5 +1,6 @@
 import std.outbuffer;
 
+import asmstate;
 import env;
 import func;
 import node;
@@ -34,23 +35,23 @@ void register_builtin(Env env) {
     bool succeeded;
 
     //add
-    auto int_add = function(Node[] args, OutBuffer o) {
-	args[0].emit_int(o);
-	o.write("\tpush rax\n");
-	args[1].emit_int(o);
-	o.write("\tmov rcx,rax\n");
-	o.write("\tpop rax\n");
-	o.write("\tadd rax,rcx\n");
+    auto int_add = function(Node[] args, AsmState state) {
+	args[0].emit_int;
+	state.write("push rax");
+	args[1].emit_int;
+	state.write("mov rcx,rax");
+	state.write("pop rax");
+	state.write("add rax,rcx");
     };
-    auto real_add = function(Node[] args, OutBuffer o) {
-	args[0].emit_real(o);
-	o.write("\tsub rsp,0x8\n");
-	o.write("\tmovsd [rsp],xmm0\n");
-	args[1].emit_real(o);
-	o.write("\tmovsd xmm1,xmm0\n");
-	o.write("\tmovsd xmm0,[rsp]\n");
-	o.write("\tadd rsp,0x8\n");
-	o.write("\taddsd xmm0,xmm1\n");
+    auto real_add = function(Node[] args, AsmState state) {
+	args[0].emit_real;
+	state.write("sub rsp,0x8");
+	state.write("movsd [rsp],xmm0");
+	args[1].emit_real;
+	state.write("movsd xmm1,xmm0");
+	state.write("movsd xmm0,[rsp]");
+	state.write("add rsp,0x8");
+	state.write("addsd xmm0,xmm1");
     };
     succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Int, Type.Int], Type.Int, null, int_add, &add_constexpr!(IntNode, IntNode, IntNode)));
     if (!succeeded) {
@@ -70,23 +71,23 @@ void register_builtin(Env env) {
     }
 
     // sub
-    auto int_sub = function(Node[] args, OutBuffer o) {
-	args[0].emit_int(o);
-	o.write("\tpush rax\n");
-	args[1].emit_int(o);
-	o.write("\tmov rcx,rax\n");
-	o.write("\tpop rax\n");
-	o.write("\tsub rax,rcx\n");
+    auto int_sub = function(Node[] args, AsmState state) {
+	args[0].emit_int;
+	state.write("push rax");
+	args[1].emit_int;
+	state.write("mov rcx,rax");
+	state.write("pop rax");
+	state.write("sub rax,rcx");
     };
-    auto real_sub = function(Node[] args, OutBuffer o) {
-	args[0].emit_real(o);
-	o.write("\tsub rsp,0x8\n");
-	o.write("\tmovsd [rsp],xmm0\n");
-	args[1].emit_real(o);
-	o.write("\tmovsd xmm1,xmm0\n");
-	o.write("\tmovsd xmm0,[rsp]\n");
-	o.write("\tadd rsp,0x8\n");
-	o.write("\tsubsd xmm0,xmm1\n");
+    auto real_sub = function(Node[] args, AsmState state) {
+	args[0].emit_real;
+	state.write("sub rsp,0x8");
+	state.write("movsd [rsp],xmm0");
+	args[1].emit_real;
+	state.write("movsd xmm1,xmm0");
+	state.write("movsd xmm0,[rsp]");
+	state.write("add rsp,0x8");
+	state.write("subsd xmm0,xmm1");
     };
     succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Int, Type.Int], Type.Int, null, int_sub, &sub_constexpr!(IntNode, IntNode, IntNode)));
     if (!succeeded) {
@@ -106,23 +107,23 @@ void register_builtin(Env env) {
     }
 
     // imul
-    auto int_imul = function(Node[] args, OutBuffer o) {
-	args[0].emit_int(o);
-	o.write("\tpush rax\n");
-	args[1].emit_int(o);
-	o.write("\tmov rcx,rax\n");
-	o.write("\tpop rax\n");
-	o.write("\timul rcx\n");
+    auto int_imul = function(Node[] args, AsmState state) {
+	args[0].emit_int;
+	state.write("push rax");
+	args[1].emit_int;
+	state.write("mov rcx,rax");
+	state.write("pop rax");
+	state.write("imul rcx");
     };
-    auto real_imul = function(Node[] args, OutBuffer o) {
-	args[0].emit_real(o);
-	o.write("\tsub rsp,0x8\n");
-	o.write("\tmovsd [rsp],xmm0\n");
-	args[1].emit_real(o);
-	o.write("\tmovsd xmm1,xmm0\n");
-	o.write("\tmovsd xmm0,[rsp]\n");
-	o.write("\tadd rsp,0x8\n");
-	o.write("\tmulsd xmm0,xmm1\n");
+    auto real_imul = function(Node[] args, AsmState state) {
+	args[0].emit_real;
+	state.write("sub rsp,0x8");
+	state.write("movsd [rsp],xmm0");
+	args[1].emit_real;
+	state.write("movsd xmm1,xmm0");
+	state.write("movsd xmm0,[rsp]");
+	state.write("add rsp,0x8");
+	state.write("mulsd xmm0,xmm1");
     };
     succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Int, Type.Int], Type.Int, null, int_imul, &imul_constexpr!(IntNode, IntNode, IntNode)));
     if (!succeeded) {
@@ -142,24 +143,24 @@ void register_builtin(Env env) {
     }
 
     // idiv
-    auto int_idiv = function(Node[] args, OutBuffer o) {
-	args[0].emit_int(o);
-	o.write("\tpush rax\n");
-	args[1].emit_int(o);
-	o.write("\tmov rbx,rax\n");
-	o.write("\tpop rax\n");
-	o.write("\txor rdx,rdx\n");
-	o.write("\tidiv rbx\n");
+    auto int_idiv = function(Node[] args, AsmState state) {
+	args[0].emit_int;
+	state.write("push rax");
+	args[1].emit_int;
+	state.write("mov rbx,rax");
+	state.write("pop rax");
+	state.write("xor rdx,rdx");
+	state.write("idiv rbx");
     };
-    auto real_idiv = function(Node[] args, OutBuffer o) {
-	args[0].emit_real(o);
-	o.write("\tsub rsp,0x8\n");
-	o.write("\tmovsd [rsp],xmm0\n");
-	args[1].emit_real(o);
-	o.write("\tmovsd xmm1,xmm0\n");
-	o.write("\tmovsd xmm0,[rsp]\n");
-	o.write("\tadd rsp,0x8\n");
-	o.write("\tdivsd xmm0,xmm1\n");
+    auto real_idiv = function(Node[] args, AsmState state) {
+	args[0].emit_real;
+	state.write("sub rsp,0x8");
+	state.write("movsd [rsp],xmm0");
+	args[1].emit_real;
+	state.write("movsd xmm1,xmm0");
+	state.write("movsd xmm0,[rsp]");
+	state.write("add rsp,0x8");
+	state.write("divsd xmm0,xmm1");
     };
     succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Int, Type.Int], Type.Int, null, int_idiv, &idiv_constexpr!(IntNode, IntNode, IntNode)));
     if (!succeeded) {
@@ -179,15 +180,15 @@ void register_builtin(Env env) {
     }
 
     // neg
-    auto int_neg = function(Node[] args, OutBuffer o) {
-	args[0].emit_int(o);
-	o.write("\tneg rax\n");
+    auto int_neg = function(Node[] args, AsmState state) {
+	args[0].emit_int;
+	state.write("neg rax");
     };
-    auto real_neg = function(Node[] args, OutBuffer o) {
-	args[0].emit_real(o);
-	o.write("\tmovsd xmm1,xmm0\n");
-	o.write("\txorps xmm0,xmm0\n");
-	o.write("\tsubsd xmm0,xmm1\n");
+    auto real_neg = function(Node[] args, AsmState state) {
+	args[0].emit_real;
+	state.write("movsd xmm1,xmm0");
+	state.write("xorps xmm0,xmm0");
+	state.write("subsd xmm0,xmm1");
     };
     succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Int], Type.Int, null, int_neg, &neg_constexpr!(IntNode)));
     if (!succeeded) {
@@ -199,17 +200,17 @@ void register_builtin(Env env) {
     }
 
     // print
-    succeeded = env.registerFunc(new BuiltinFunc("print", [Type.Int], Type.Void, null, function(Node[] args, OutBuffer o) {
-	args[0].emit_int(o);
-	o.write("\tmov rdi,rax\n");
-	o.write("\tcall print_int\n");
+    succeeded = env.registerFunc(new BuiltinFunc("print", [Type.Int], Type.Void, null, function(Node[] args, AsmState state) {
+	args[0].emit_int;
+	state.write("mov rdi,rax");
+	state.write("call print_int");
     }));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("print", [Type.Real], Type.Void, null, function(Node[] args, OutBuffer o) {
-	args[0].emit_real(o);
-	o.write("\tcall print_real\n");
+    succeeded = env.registerFunc(new BuiltinFunc("print", [Type.Real], Type.Void, null, function(Node[] args, AsmState state) {
+	args[0].emit_real;
+	state.write("call print_real");
     }));
     if (!succeeded) {
 	throw new Exception("Internal Error");

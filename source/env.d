@@ -19,6 +19,8 @@ class Env {
 	    cur.registerType(Type.Real);
 
 	    register_builtin(cur);
+
+	    AsmState.init();
 	}
 	static void newScope() {
 	    // TODO asmstate

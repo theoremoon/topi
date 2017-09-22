@@ -13,36 +13,40 @@ import asmstate;
 class Node {
     public:
         Env env = null;
-        bool is_constexpr() { return false; }
+        abstract bool is_constexpr();
         abstract Type type();
-        void analyze() { env = Env.cur; }
-        Node eval() { return this; }
-        abstract void emit(OutBuffer o);
+        abstract void analyze();
+        abstract Node eval();
+        abstract void emit();
 }
 
-void emit_int(Node node, OutBuffer o) {
+void emit_int(Node node) {
     if (node.type is Type.Int) {
-        node.emit(o);
+        node.emit;
+    }
+    else if (auto realNode = cast(RealNode)node) {
+        auto intNode = new IntNode(cast(long)realNode.v);
+        intNode.emit;
     }
     else if (node.type is Type.Real) {
-        node.emit(o);
-        o.write("\tcvtsd2si rax, xmm0\n");
+        node.emit;
+        Env.cur.state.write("cvtsd2si rax, xmm0");
     }
     else {
         throw new Exception("unimplemented");
     }
 }
-void emit_real(Node node, OutBuffer o) {
+void emit_real(Node node) {
     if (node.type is Type.Real) {
-        node.emit(o);
+        node.emit;
     }
     else if (auto intNode = cast(IntNode)node) {
         auto realNode = new RealNode(cast(double)intNode.v);
-        realNode.emit(o);
+        realNode.emit;
     }
     else if (node.type is Type.Int) {
-        node.emit(o);
-        o.write("\tcvtsi2sd xmm0, rax\n");
+        node.emit;
+        Env.cur.state.write("cvtsi2sd xmm0, rax");
     }
     else {
         throw new Exception("unimplemented");
@@ -55,9 +59,13 @@ class IntNode : Node {
         this(long v) {
             this.v = v;
         }
-        override void emit(OutBuffer o) { o.writef("\tmov rax,%d\n", v); }
-        override Type type() { return Type.Int; }
         override bool is_constexpr() { return true; }
+        override Type type() { return Type.Int; }
+        override void analyze() { env = Env.cur; }
+        override Node eval() { return this; }
+        override void emit() {
+            env.state.write("mov rax,%d".format(v));
+        }
         override string toString() { return v.to!string; }
 }
 
@@ -77,16 +85,17 @@ class RealNode : Node {
         this(double v) {
             this.v = v;
         }
-        override void emit(OutBuffer o) {
-            auto state = env.state;
-            auto idx = state.assign(8);
-
-            o.writef("\tmov rax,%d\n", double2long(v));
-            o.writef("\tmov [rbp-%d],rax\n", idx);
-            o.writef("\tmovupd xmm0,[rbp-%d]\n", idx);
-        }
-        override Type type() { return Type.Real; }
         override bool is_constexpr() { return true; }
+        override Type type() { return Type.Real; }
+        override void analyze() { env = Env.cur; }
+        override Node eval() { return this; }
+        override void emit() {
+            auto idx = env.state.assign(8);
+
+            env.state.write("mov rax,%d".format(double2long(v)));
+            env.state.write("mov [rbp-%d],rax".format(idx));
+            env.state.write("movupd xmm0,[rbp-%d]".format(idx));
+        }
         override string toString() { return v.to!string; }
 }
 
@@ -101,21 +110,37 @@ class FuncCall : Node {
             this.args = args;
         }
 
-        override bool is_constexpr() { return func.is_constexpr; }
-        override void emit(OutBuffer o) { 
-            func.call(args, o);
-        }
-        override Type type() { return func.rettype; }
-        override string toString() {
-            return "("~fname.to!string~" "~args.map!(a => a.to!string).join(" ")~")";
-        }
-        override Node eval() {
-            this.func = env.getFunc(fname, args);
+        void load() {
+            if (func !is null) { return; }
+            func = env.getFunc(fname, args);
             if (func is null)  {
                 throw new Exception("Unimplemented function: " ~ Func.signature(fname, args).to!string); 
             }
+        }
+
+        override bool is_constexpr() {
+            load();
+            return func.is_constexpr;
+        }
+        override Type type() { 
+            load();
+            return func.rettype;
+        }
+        override void analyze() {
+            env = Env.cur;
+            foreach (arg; args) { arg.analyze; }
+        }
+        override Node eval() {
+            load();
+            foreach (arg; args) { arg = arg.eval; }
             if (is_constexpr) { return func.eval(args); }
             return this;
+        }
+        override void emit() { 
+            func.call(args, env.state);
+        }
+        override string toString() {
+            return "("~fname.to!string~" "~args.map!(a => a.to!string).join(" ")~")";
         }
 }
 
@@ -130,6 +155,10 @@ class BlockNode : Node {
             this.nodes = nodes;
         }
 
+        override bool is_constexpr() {
+            return all(nodes.map!(a => a.is_constexpr));
+        }
+        override Type type() { return Type.Void; } 
         override void analyze() {
             env = Env.cur;
             Env.newScope();
@@ -139,14 +168,15 @@ class BlockNode : Node {
 
             Env.exitScope();
         }
-        override bool is_constexpr() {
-            return all(nodes.map!(a => a.is_constexpr));
+        override Node eval() {
+            if (declBlock !is null) { declBlock.eval; }
+            foreach (node; nodes) { node.eval(); }
+            return this;
         }
-        override void emit(OutBuffer o) {
-            if (declBlock !is null) { declBlock.emit(o); }
-            foreach (node; nodes) { node.emit(o); }
+        override void emit() {
+            if (declBlock !is null) { declBlock.emit; }
+            foreach (node; nodes) { node.emit; }
         }
-        override Type type() { return Type.Void; } 
         override string toString() {
             return "{"~nodes.map!(a => a.to!string).join(" ")~"}";
         }
@@ -161,6 +191,10 @@ class DeclNode : Node {
             this.typename = typename;
             this.varname = varname;
         }
+
+        override bool is_constexpr() { return true; }
+        override Type type() { return Type.Void; }
+        override void analyze() { env = Env.cur; }
         override Node eval() {
             Type t = env.getType(typename);
             if (t is null) {
@@ -172,8 +206,7 @@ class DeclNode : Node {
             }
             return this;
         }
-        override void emit(OutBuffer o) {}
-        override Type type() { return Type.Void; }
+        override void emit() {}
         override string toString() {
             return "(Decl %s %s)".format(typename, varname);
         }
@@ -192,14 +225,19 @@ class DeclBlock : Node {
                 this.decls ~= decl.decls;
             }
         }
+        override bool is_constexpr() { return true; }
+        override Type type() { return Type.Void; }
+        override void analyze() {
+            env = Env.cur;
+            foreach (decl; decls) { decl.analyze(); }
+        }
         override Node eval() {
             foreach (decl; decls) { decl.eval(); }
             return this;
         }
-        override void emit(OutBuffer o) {
-            foreach (decl; decls) { decl.emit(o); }
+        override void emit() {
+            foreach (decl; decls) { decl.emit; }
         }
-        override Type type() { return Type.Void; }
         override string toString() { return "("~decls.map!(a=>a.to!string).join(" ")~")"; }
 }
 
@@ -211,20 +249,27 @@ class VarNode : Node {
         this(string varname) {
             this.varname = varname;
         }
-        
-        override bool is_constexpr() { /*return still_constexpr;*/ return false; }
-        override Node eval() {
+
+        void load() {
+            if (var !is null) { return; }
             var = env.getVar(varname);
             if (var is null) {
                 throw new Exception("undefined name %s".format(varname));
             }
+        }
+        
+        override bool is_constexpr() { /*return still_constexpr;*/ return false; }
+        override Type type() {
+            load();
+            return var.type;
+        }
+        override void analyze() { env = Env.cur; }
+        override Node eval() {
+            load();
             return this;
         }
-        override void emit(OutBuffer o) { 
+        override void emit() { 
             throw new Exception("unimplemented");
-        }
-        override Type type() {
-            return var.type;
         }
         override string toString() {
             return "("~varname~")";

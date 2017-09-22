@@ -1,14 +1,14 @@
 import std.algorithm;
-import std.outbuffer;
 import std.conv;
 import std.array;
 
 import type;
+import asmstate;
 import node;
 
 class Func {
     public:
-	alias EmitT = void function(OutBuffer);
+	alias EmitT = void function(AsmState);
 
 	string name;
 	Type[] argtypes;
@@ -33,13 +33,13 @@ class Func {
 	string signature() {
 	    return Func.signature(name, argtypes);
 	}
-	void emit(OutBuffer o) {
+	void emit(AsmState state) {
 	    // emitfunc may be null
 	    if (emitfunc !is null) {
-		emitfunc(o);
+		emitfunc(state);
 	    }
 	}
-	void call(Node[] args, OutBuffer o) {
+	void call(Node[] args, AsmState state) {
 	    throw new Exception("unimplemented");
 	}
 	Node eval(Node[] args) {
@@ -59,7 +59,7 @@ class Func {
 
 class BuiltinFunc : Func {
     public:
-	alias CallT = void function(Node[], OutBuffer);
+	alias CallT = void function(Node[], AsmState);
 	alias ConstexprT = Node function(Node[]); 
 	CallT callfunc;
 	ConstexprT constexprfunc;
@@ -69,8 +69,8 @@ class BuiltinFunc : Func {
 	    this.callfunc = callfunc;
 	    this.constexprfunc = constexprfunc;
 	}
-	override void call(Node[] args, OutBuffer o) {
-	    callfunc(args, o);
+	override void call(Node[] args, AsmState state) {
+	    callfunc(args, state);
 	}
 	override Node eval(Node[] args) {
 	    if (!is_constexpr) {

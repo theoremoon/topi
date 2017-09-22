@@ -36,12 +36,16 @@ void main(string[] args)
     else {
         OutBuffer o = new OutBuffer();
         node.analyze;
+        stderr.writeln("analyze");
         node = node.eval;
-        node.emit(o);
+        stderr.writeln("eval");
+        node.emit;
+        stderr.writeln("emit");
 
         OutBuffer header = new OutBuffer();
         asm_head(header);
         Env.cur.state.emit_header(header, "_func");
+        o.write(AsmState.buf.toString);
         Env.cur.state.emit_footer(o);
 
         write(header.toString);

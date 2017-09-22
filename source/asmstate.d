@@ -2,13 +2,20 @@ import std.outbuffer;
 
 class AsmState {
     public:
+	static OutBuffer buf;
+	static void init() {
+	    buf = new OutBuffer();
+	}
+	static void write(string str) {
+	    buf.write("\t"~str~"\n");
+	}
+
 	uint rsp = 0;
 	uint assign(uint size) {
 	    rsp += size;
 	    rsp += rsp%16;
 	    return rsp;
 	}
-
 	void emit_header(OutBuffer o, string fname) {
 	    if (fname.length == 0) {
 		throw new Exception("internal error");
