@@ -40,15 +40,12 @@ class Func {
 	    }
 	}
 	void call(Node[] args, OutBuffer o) {
-	    // constexpr
-	    if (is_constexpr && all(args.map!(a => a.is_constexpr))) {
-		eval(args).emit(o);
-	    }
-	    // not constexpr
-	    else {
-	    }
+	    throw new Exception("unimplemented");
 	}
 	Node eval(Node[] args) {
+	    if (!is_constexpr) { 
+		throw new Exception("internal error");
+	    }
 	    return null;
 	}
 
@@ -73,15 +70,12 @@ class BuiltinFunc : Func {
 	    this.constexprfunc = constexprfunc;
 	}
 	override void call(Node[] args, OutBuffer o) {
-	    // constexpr
-	    if (is_constexpr && all(args.map!(a=>a.is_constexpr))) {
-		eval(args).emit(o);
-		return;
-	    }
-	    // not constexpr
 	    callfunc(args, o);
 	}
 	override Node eval(Node[] args) {
+	    if (!is_constexpr) {
+		throw new Exception("internal error");
+	    }
 	    return constexprfunc(args);
 	}
 	override bool is_constexpr() {

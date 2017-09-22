@@ -20,6 +20,15 @@ class Env {
 
 	    register_builtin(cur);
 	}
+	static void newScope() {
+	    // TODO asmstate
+	    Env newEnv = new Env();
+	    newEnv.parent = cur;
+	    cur = newEnv;
+	}
+	static void exitScope() {
+	    cur = cur.parent;
+	}
 
 	Env parent = null;
 	Func[string] funcs;

@@ -12,10 +12,12 @@ import asmstate;
 
 class Node {
     public:
+        Env env = null;
         bool is_constexpr() { return false; }
+        void analyze() { env = Env.cur; }
         abstract void emit(OutBuffer o);
         abstract Type type();
-        Node eval() { throw new Exception("internal error"); }
+        Node eval() { return this; }
 }
 
 void emit_int(Node node, OutBuffer o) {
@@ -57,7 +59,6 @@ class IntNode : Node {
         override Type type() { return Type.Int; }
         override bool is_constexpr() { return true; }
         override string toString() { return v.to!string; }
-        override Node eval() { return this; }
 }
 
 class RealNode : Node {
@@ -77,7 +78,7 @@ class RealNode : Node {
             this.v = v;
         }
         override void emit(OutBuffer o) {
-            auto state = Env.cur.state;
+            auto state = env.state;
             auto idx = state.assign(8);
 
             o.writef("\tmov rax,%d\n", double2long(v));
@@ -87,7 +88,6 @@ class RealNode : Node {
         override Type type() { return Type.Real; }
         override bool is_constexpr() { return true; }
         override string toString() { return v.to!string; }
-        override Node eval() { return this; }
 }
 
 class FuncCall : Node {
@@ -99,10 +99,6 @@ class FuncCall : Node {
         this(string fname, Node[] args) {
             this.fname = fname;
             this.args = args;
-            this.func = Env.cur.getFunc(fname, args);
-            if (func is null)  {
-                throw new Exception("Unimplemented function: " ~ Func.signature(fname, args).to!string); 
-            }
         }
 
         override bool is_constexpr() { return func.is_constexpr; }
@@ -114,8 +110,12 @@ class FuncCall : Node {
             return "("~fname.to!string~" "~args.map!(a => a.to!string).join(" ")~")";
         }
         override Node eval() {
-            if (!is_constexpr) { throw new Exception("Internal error"); }
-            return func.eval(args);
+            this.func = env.getFunc(fname, args);
+            if (func is null)  {
+                throw new Exception("Unimplemented function: " ~ Func.signature(fname, args).to!string); 
+            }
+            if (is_constexpr) { return func.eval(args); }
+            return this;
         }
 }
 
@@ -126,10 +126,19 @@ class BlockNode : Node {
         Node[] nodes;
 
         this(Node[] nodes, DeclBlock declBlock) {
-            this.nodes = nodes;
             this.declBlock = declBlock;
+            this.nodes = nodes;
         }
 
+        override void analyze() {
+            env = Env.cur;
+            Env.newScope();
+
+            declBlock.analyze();
+            foreach (node; nodes) { node.analyze(); }
+
+            Env.exitScope();
+        }
         override bool is_constexpr() {
             return all(nodes.map!(a => a.is_constexpr));
         }
@@ -152,16 +161,18 @@ class DeclNode : Node {
             this.typename = typename;
             this.varname = varname;
         }
-        override void emit(OutBuffer o) {
-            Type t = Env.cur.getType(typename);
+        override Node eval() {
+            Type t = env.getType(typename);
             if (t is null) {
                 throw new Exception("type %s is not defiend".format(typename)); 
             }
-            bool success = Env.cur.registerVar(new Var(t, varname));
+            bool success = env.registerVar(new Var(t, varname));
             if (!success) {
                 throw new Exception("variable %s id already defined".format(varname));
             }
+            return this;
         }
+        override void emit(OutBuffer o) {}
         override Type type() { return Type.Void; }
         override string toString() {
             return "(Decl %s %s)".format(typename, varname);
@@ -181,6 +192,10 @@ class DeclBlock : Node {
                 this.decls ~= decl.decls;
             }
         }
+        override Node eval() {
+            foreach (decl; decls) { decl.eval(); }
+            return this;
+        }
         override void emit(OutBuffer o) {
             foreach (decl; decls) { decl.emit(o); }
         }
@@ -191,24 +206,24 @@ class DeclBlock : Node {
 class VarNode : Node {
     public:
         string varname;
+        bool still_constexpr = true;
+        Var var = null;
         this(string varname) {
             this.varname = varname;
         }
-
-        // FIXME
-        override bool is_constexpr() { return false; }
-        override void emit(OutBuffer o) { 
-            auto var = Env.cur.getVar(varname);
+        
+        override bool is_constexpr() { /*return still_constexpr;*/ return false; }
+        override Node eval() {
+            var = env.getVar(varname);
             if (var is null) {
                 throw new Exception("undefined name %s".format(varname));
             }
+            return this;
+        }
+        override void emit(OutBuffer o) { 
             throw new Exception("unimplemented");
         }
         override Type type() {
-            auto var = Env.cur.getVar(varname);
-            if (var is null) {
-                throw new Exception("undefined name %s".format(varname));
-            }
             return var.type;
         }
         override string toString() {
