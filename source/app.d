@@ -35,6 +35,8 @@ void main(string[] args)
     }
     else {
         OutBuffer o = new OutBuffer();
+        node.analyze;
+        node = node.eval;
         node.emit(o);
 
         OutBuffer header = new OutBuffer();

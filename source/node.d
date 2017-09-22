@@ -14,10 +14,10 @@ class Node {
     public:
         Env env = null;
         bool is_constexpr() { return false; }
-        void analyze() { env = Env.cur; }
-        abstract void emit(OutBuffer o);
         abstract Type type();
+        void analyze() { env = Env.cur; }
         Node eval() { return this; }
+        abstract void emit(OutBuffer o);
 }
 
 void emit_int(Node node, OutBuffer o) {
