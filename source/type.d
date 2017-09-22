@@ -9,7 +9,7 @@ class Type {
 	static Type Real;
 	static Type Void;
 
-	static this() {
+	static void init() {
 	    Void = new Type();
 	    Void.typestr = "Void";
 	    Int = new Type();
@@ -19,6 +19,6 @@ class Type {
 	}
 
 	override string toString() {
-	    return typestr.to!string;
+	    return typestr;
 	}
 }

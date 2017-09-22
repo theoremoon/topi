@@ -2,10 +2,6 @@ import std.outbuffer;
 
 class AsmState {
     public:
-	static AsmState cur;
-	static this() {
-	    cur = new AsmState();
-	}
 	uint rsp = 0;
 	uint assign(uint size) {
 	    rsp += size;

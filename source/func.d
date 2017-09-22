@@ -9,7 +9,6 @@ import node;
 class Func {
     public:
 	alias EmitT = void function(OutBuffer);
-	static Func[string] funcs;
 
 	string name;
 	Type[] argtypes;
@@ -17,30 +16,11 @@ class Func {
 	EmitT emitfunc;
 	bool constexpr_flag = false;
 
-	static bool register(Func f) {
-	    if (f.signature in funcs) {
-		return false;
-	    }
-	    funcs[f.signature] = f;
-	    return true;
-	}
 	static string signature(string name, Node[] args) {
-	    Type[] argtypes = args.map!(a => a.type).array;
-	    return signature(name, argtypes);
+	    return name~"("~args.map!(a => a.type.to!string).join(",")~")";
 	}
 	static string signature(string name, Type[] argtypes) {
 	    return name~"("~argtypes.map!(to!string).join(",")~")";
-	}
-	static Func get(string name, Node[] args) {
-	    Type[] argtypes = args.map!(a => a.type).array;
-	    return get(name, argtypes);
-	}
-	static Func get(string name, Type[] argtypes) {
-	    auto sign = signature(name, argtypes);
-	    if (sign !in funcs) {
-		return null;
-	    }
-	    return funcs[sign];
 	}
 
 	this(string name, Type[] argtypes, Type rettype, EmitT emitfunc) {

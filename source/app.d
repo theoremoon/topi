@@ -3,6 +3,7 @@ import std.stdio;
 import std.format;
 import std.outbuffer;
 
+import env;
 import asmstate;
 import type;
 import input;
@@ -23,8 +24,7 @@ void asm_head(OutBuffer o) {
 
 void main(string[] args)
 {
-    register_builtin();
-
+    Env.init();
     Input input = new Input(stdin);
 
     auto lexer = new Lexer(input);
@@ -39,8 +39,8 @@ void main(string[] args)
 
         OutBuffer header = new OutBuffer();
         asm_head(header);
-        AsmState.cur.emit_header(header, "_func");
-        AsmState.cur.emit_footer(o);
+        Env.cur.state.emit_header(header, "_func");
+        Env.cur.state.emit_footer(o);
 
         write(header.toString);
         write(o.toString);

@@ -31,7 +31,7 @@ Node parseFuncCall(Lexer lexer) {
     }
 
     auto open = lexer.get;
-    if (open.type != Token.Type.SYM_OPEN_PAREN) {
+    if (open.type != Token.Type.OPEN_PAREN) {
         lexer.unget(fname);
         lexer.unget(open);
         return null;
@@ -43,13 +43,13 @@ Node parseFuncCall(Lexer lexer) {
         if (expr is null) { break; }
         exprs ~= expr;
         auto comma = lexer.get;
-        if (comma.type != Token.Type.SYM_COMMA) {
+        if (comma.type != Token.Type.COMMA) {
             lexer.unget(comma);
             break;
         }
     }
     auto close = lexer.get;
-    if (close.type != Token.Type.SYM_CLOSE_PAREN) {
+    if (close.type != Token.Type.CLOSE_PAREN) {
         throw new TopiException("CLOSE PARENTHES ) is required", close.loc);
     }
     return new FuncCall(fname.str, exprs);
@@ -70,7 +70,7 @@ Node parseFactor(Lexer lexer) {
     if (uop.type == Token.Type.IDENT) {
         auto paren = lexer.get;
         // func call
-        if (paren.type == Token.Type.SYM_OPEN_PAREN) {
+        if (paren.type == Token.Type.OPEN_PAREN) {
             lexer.unget(paren);
             lexer.unget(uop);
 
@@ -83,13 +83,13 @@ Node parseFactor(Lexer lexer) {
         throw new TopiException("variable like is unimplemented", lexer.loc);
     }
     // (expr)
-    if (uop.type == Token.Type.SYM_OPEN_PAREN) {
+    if (uop.type == Token.Type.OPEN_PAREN) {
         auto expr = lexer.parseExpr;
         if (expr is null) {
             throw new TopiException("expression is required for (expr)", lexer.loc);
         }
         auto close = lexer.get;
-        if (close.type != Token.Type.SYM_CLOSE_PAREN) {
+        if (close.type != Token.Type.CLOSE_PAREN) {
             throw new TopiException("close paren is required", lexer.loc);
         }
         return expr;
@@ -155,9 +155,71 @@ Node parseExpr(Lexer lexer, Node left = null) {
     return left;
 }
 
-Node parseBlock(Lexer lexer) {
+DeclBlock parseDecl(Lexer lexer) {
+    auto type = lexer.get;
+    if (type.type != Token.Type.KEYWORD) { 
+        lexer.unget(type);
+        return null;
+    }
+
+    DeclNode[] decls = [];
+    while (true) {
+        auto name = lexer.get;
+        if (name.type != Token.Type.IDENT) {
+            throw new TopiException("expected variable name", name.loc);
+        }
+        decls ~= new DeclNode(type.str, name.str);
+
+        auto comma = lexer.get;
+        if (comma.type != Token.Type.COMMA) {
+            lexer.unget(comma);
+            break;
+        }
+    }
+
+    return new DeclBlock(decls);
+}
+
+DeclBlock parseDeclBlock(Lexer lexer) {
     auto open = lexer.get;
-    if (open.type != Token.Type.SYM_OPEN_MUSTACHE) {
+    if (open.type != Token.Type.OPEN_BRACKET) {
+        lexer.unget(open);
+        return null;
+    }
+
+    DeclBlock[] decls;
+    while (true) {
+        auto decls2 = lexer.parseDecl;
+        if (decls2 is null) { break; }
+        decls ~= decls2;
+
+        if (!lexer.is_next_newline) { break; }
+    }
+
+    auto close = lexer.get;
+    if (close.type != Token.Type.CLOSE_BRACKET) {
+        throw new TopiException("expected ]", close.loc);
+    }
+    return new DeclBlock(decls);
+}
+
+Node parseBlock(Lexer lexer) {
+    DeclBlock declBlock = null;
+    auto open = lexer.get;
+
+    if (open.type == Token.Type.OPEN_BRACKET) {
+        lexer.unget(open);
+        declBlock = lexer.parseDeclBlock;
+        if (declBlock is null) {
+            throw new TopiException("Variable Declaration is required", open.loc);
+        }
+        open = lexer.get; // will be {
+        if (open.type != Token.Type.OPEN_MUSTACHE) {
+            throw new TopiException("Block { is required", open.loc);
+        }
+    }
+
+    if (open.type != Token.Type.OPEN_MUSTACHE) {
         lexer.unget(open);
         return null;
     }
@@ -167,18 +229,15 @@ Node parseBlock(Lexer lexer) {
         auto node = lexer.parseToplevel;
         if (node is null) { break; }
         nodes ~= node;
-        auto nl = lexer.get;
-        if (nl.type != Token.Type.NEWLINE) {
-            lexer.unget(nl);
-            break;
-        }
+
+        if (!lexer.is_next_newline) { break; }
     }
 
     auto close = lexer.get;
-    if (close.type != Token.Type.SYM_CLOSE_MUSTACHE) {
+    if (close.type != Token.Type.CLOSE_MUSTACHE) {
         throw new TopiException("expected }", close.loc);
     }
-    return new BlockNode(nodes);
+    return new BlockNode(nodes, declBlock);
 }
 
 Node parseToplevel(Lexer lexer) {

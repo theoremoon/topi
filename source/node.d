@@ -1,8 +1,10 @@
 import std.algorithm;
 import std.outbuffer;
+import std.format;
 import std.array;
 import std.conv;
 
+import env;
 import type;
 import func;
 import asmstate;
@@ -12,7 +14,7 @@ class Node {
         bool is_constexpr() { return false; }
         abstract void emit(OutBuffer o);
         abstract Type type();
-        Node eval() { return this; }
+        Node eval() { throw new Exception("internal error"); }
 }
 
 void emit_int(Node node, OutBuffer o) {
@@ -54,6 +56,7 @@ class IntNode : Node {
         override Type type() { return Type.Int; }
         override bool is_constexpr() { return true; }
         override string toString() { return v.to!string; }
+        override Node eval() { return this; }
 }
 
 class RealNode : Node {
@@ -73,7 +76,7 @@ class RealNode : Node {
             this.v = v;
         }
         override void emit(OutBuffer o) {
-            auto state = AsmState.cur;
+            auto state = Env.cur.state;
             auto idx = state.assign(8);
 
             o.writef("\tmov rax,%d\n", double2long(v));
@@ -84,6 +87,7 @@ class RealNode : Node {
         override Type type() { return Type.Real; }
         override bool is_constexpr() { return true; }
         override string toString() { return v.to!string; }
+        override Node eval() { return this; }
 }
 
 class FuncCall : Node {
@@ -95,7 +99,7 @@ class FuncCall : Node {
         this(string fname, Node[] args) {
             this.fname = fname;
             this.args = args;
-            this.func = Func.get(fname, args);
+            this.func = Env.cur.getFunc(fname, args);
             if (func is null)  {
                 throw new Exception("Unimplemented function: " ~ Func.signature(fname, args).to!string); 
             }
@@ -118,23 +122,64 @@ class FuncCall : Node {
 
 class BlockNode : Node {
     public:
+        DeclBlock declBlock;
         Node[] nodes;
 
-        this(Node[] nodes) {
+        this(Node[] nodes, DeclBlock declBlock) {
             this.nodes = nodes;
+            this.declBlock = declBlock;
         }
 
         override bool is_constexpr() {
             return all(nodes.map!(a => a.is_constexpr));
         }
         override void emit(OutBuffer o) {
+            if (declBlock !is null) { declBlock.emit(o); }
             foreach (node; nodes) { node.emit(o); }
         }
         override Type type() { return Type.Void; } 
         override string toString() {
             return "{"~nodes.map!(a => a.to!string).join(" ")~"}";
         }
-        override Node eval() {
-            throw new Exception("internal error");
+}
+
+class DeclNode : Node {
+    public:
+        string typename;
+        string varname;
+
+        this(string typename, string varname) {
+            this.typename = typename;
+            this.varname = varname;
         }
+        override void emit(OutBuffer o) {
+            // FIXME
+            if (Env.cur.getType(typename) is null) {
+                throw new Exception("type %s is not defiend".format(typename)); 
+            }
+        }
+        override Type type() { return Type.Void; }
+        override string toString() {
+            return "(Decl %s %s)".format(typename, varname);
+        }
+}
+
+class DeclBlock : Node {
+    public:
+        DeclNode[] decls;
+
+        this(DeclNode[] decls) {
+            this.decls = decls;
+        }
+        this(DeclBlock[] decls) {
+            this.decls = [];
+            foreach (decl; decls) {
+                this.decls ~= decl.decls;
+            }
+        }
+        override void emit(OutBuffer o) {
+            foreach (decl; decls) { decl.emit(o); }
+        }
+        override Type type() { return Type.Void; }
+        override string toString() { return "("~decls.map!(a=>a.to!string).join(" ")~")"; }
 }

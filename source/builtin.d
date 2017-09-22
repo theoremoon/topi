@@ -1,5 +1,6 @@
 import std.outbuffer;
 
+import env;
 import func;
 import node;
 import type;
@@ -29,7 +30,7 @@ Node neg_constexpr(T1)(Node[] args) {
 
 
 
-void register_builtin() {
+void register_builtin(Env env) {
     bool succeeded;
 
     //add
@@ -51,19 +52,19 @@ void register_builtin() {
 	o.write("\tadd rsp,0x8\n");
 	o.write("\taddsd xmm0,xmm1\n");
     };
-    succeeded = Func.register(new BuiltinFunc("+", [Type.Int, Type.Int], Type.Int, null, int_add, &add_constexpr!(IntNode, IntNode, IntNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Int, Type.Int], Type.Int, null, int_add, &add_constexpr!(IntNode, IntNode, IntNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("+", [Type.Int, Type.Real], Type.Real, null, real_add, &add_constexpr!(IntNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Int, Type.Real], Type.Real, null, real_add, &add_constexpr!(IntNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("+", [Type.Real, Type.Int], Type.Real, null, real_add, &add_constexpr!(RealNode, IntNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Real, Type.Int], Type.Real, null, real_add, &add_constexpr!(RealNode, IntNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("+", [Type.Real, Type.Real], Type.Real, null, real_add, &add_constexpr!(RealNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Real, Type.Real], Type.Real, null, real_add, &add_constexpr!(RealNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
@@ -87,19 +88,19 @@ void register_builtin() {
 	o.write("\tadd rsp,0x8\n");
 	o.write("\tsubsd xmm0,xmm1\n");
     };
-    succeeded = Func.register(new BuiltinFunc("-", [Type.Int, Type.Int], Type.Int, null, int_sub, &sub_constexpr!(IntNode, IntNode, IntNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Int, Type.Int], Type.Int, null, int_sub, &sub_constexpr!(IntNode, IntNode, IntNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("-", [Type.Real, Type.Int], Type.Real, null, real_sub, &sub_constexpr!(RealNode, IntNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Real, Type.Int], Type.Real, null, real_sub, &sub_constexpr!(RealNode, IntNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("-", [Type.Int, Type.Real], Type.Real, null, real_sub, &sub_constexpr!(IntNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Int, Type.Real], Type.Real, null, real_sub, &sub_constexpr!(IntNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("-", [Type.Real, Type.Real], Type.Real, null, real_sub, &sub_constexpr!(RealNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Real, Type.Real], Type.Real, null, real_sub, &sub_constexpr!(RealNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
@@ -123,19 +124,19 @@ void register_builtin() {
 	o.write("\tadd rsp,0x8\n");
 	o.write("\tmulsd xmm0,xmm1\n");
     };
-    succeeded = Func.register(new BuiltinFunc("*", [Type.Int, Type.Int], Type.Int, null, int_imul, &imul_constexpr!(IntNode, IntNode, IntNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Int, Type.Int], Type.Int, null, int_imul, &imul_constexpr!(IntNode, IntNode, IntNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("*", [Type.Real, Type.Int], Type.Real, null, real_imul, &imul_constexpr!(RealNode, IntNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Real, Type.Int], Type.Real, null, real_imul, &imul_constexpr!(RealNode, IntNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("*", [Type.Int, Type.Real], Type.Real, null, real_imul, &imul_constexpr!(IntNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Int, Type.Real], Type.Real, null, real_imul, &imul_constexpr!(IntNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("*", [Type.Real, Type.Real], Type.Real, null, real_imul, &imul_constexpr!(RealNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Real, Type.Real], Type.Real, null, real_imul, &imul_constexpr!(RealNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
@@ -160,19 +161,19 @@ void register_builtin() {
 	o.write("\tadd rsp,0x8\n");
 	o.write("\tdivsd xmm0,xmm1\n");
     };
-    succeeded = Func.register(new BuiltinFunc("/", [Type.Int, Type.Int], Type.Int, null, int_idiv, &idiv_constexpr!(IntNode, IntNode, IntNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Int, Type.Int], Type.Int, null, int_idiv, &idiv_constexpr!(IntNode, IntNode, IntNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("/", [Type.Real, Type.Int], Type.Real, null, real_idiv, &idiv_constexpr!(RealNode, IntNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Real, Type.Int], Type.Real, null, real_idiv, &idiv_constexpr!(RealNode, IntNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("/", [Type.Int, Type.Real], Type.Real, null, real_idiv, &idiv_constexpr!(IntNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Int, Type.Real], Type.Real, null, real_idiv, &idiv_constexpr!(IntNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("/", [Type.Real, Type.Real], Type.Real, null, real_idiv, &idiv_constexpr!(RealNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Real, Type.Real], Type.Real, null, real_idiv, &idiv_constexpr!(RealNode, RealNode, RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
@@ -188,17 +189,17 @@ void register_builtin() {
 	o.write("\txorps xmm0,xmm0\n");
 	o.write("\tsubsd xmm0,xmm1\n");
     };
-    succeeded = Func.register(new BuiltinFunc("-", [Type.Int], Type.Int, null, int_neg, &neg_constexpr!(IntNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Int], Type.Int, null, int_neg, &neg_constexpr!(IntNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("-", [Type.Real], Type.Real, null, real_neg, &neg_constexpr!(RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Real], Type.Real, null, real_neg, &neg_constexpr!(RealNode)));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
 
     // print
-    succeeded = Func.register(new BuiltinFunc("print", [Type.Int], Type.Void, null, function(Node[] args, OutBuffer o) {
+    succeeded = env.registerFunc(new BuiltinFunc("print", [Type.Int], Type.Void, null, function(Node[] args, OutBuffer o) {
 	args[0].emit_int(o);
 	o.write("\tmov rdi,rax\n");
 	o.write("\tcall print_int\n");
@@ -206,7 +207,7 @@ void register_builtin() {
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = Func.register(new BuiltinFunc("print", [Type.Real], Type.Void, null, function(Node[] args, OutBuffer o) {
+    succeeded = env.registerFunc(new BuiltinFunc("print", [Type.Real], Type.Void, null, function(Node[] args, OutBuffer o) {
 	args[0].emit_real(o);
 	o.write("\tcall print_real\n");
     }));

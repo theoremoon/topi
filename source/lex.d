@@ -31,6 +31,11 @@ class Lexer {
         Location loc() {
             return input.location;
         }
+        bool is_next_newline() {
+            auto next = get;
+            unget(next);
+            return next.pre_newline;
+        }
 }
 
 
@@ -49,22 +54,35 @@ bool isIdentChar(dchar c) {
 bool isSpace(dchar c) {
     return c == ' ';
 }
+bool isNewline(dchar c) {
+    return c == '\n';
+}
 
-void skip_space(Input input) {
-    dchar c = input.get;
-    while (c.isSpace) { c = input.get; }
-    input.unget(c);
+bool[] skip_space(Input input) {
+    bool space = false;
+    bool newline = false;
+
+    while (true) {
+        dchar c = input.get;
+        if (c.isSpace) { space = true; }
+        else if (c.isNewline) { newline = true; }
+        else { 
+            input.unget(c);
+            break; 
+        }
+    }
+    return [space, newline];
 }
 
 Token lexOne(Input input) {
-    skip_space(input);
+    auto space = skip_space(input);
 
-    auto token  = lex_symbol(input);
-    if (token.type != Token.Type.UNKNOWN) { return token; }
+    auto token = lex_symbol(input);
+    if (token.type != Token.Type.UNKNOWN) { return token.with_spaces(space[0], space[1]); }
     token = lex_number(input);
-    if (token.type != Token.Type.UNKNOWN) { return token; }
+    if (token.type != Token.Type.UNKNOWN) { return token.with_spaces(space[0], space[1]); }
     token = lex_identifier(input);
-    if (token.type != Token.Type.UNKNOWN) { return token; }
+    if (token.type != Token.Type.UNKNOWN) { return token.with_spaces(space[0], space[1]); }
 
     return null;
 }
@@ -176,18 +194,22 @@ Token lex_symbol(Input input) {
             return new Token(Token.Type.OP_MUL, "*", input.location);
         case '/':
             return new Token(Token.Type.SYM_SLASH, "/", input.location);
+        case '=':
+            return new Token(Token.Type.OP_ASSIGN, "=", input.location);
         case ',':
-            return new Token(Token.Type.SYM_COMMA, ",", input.location);
+            return new Token(Token.Type.COMMA, ",", input.location);
         case '(':
-            return new Token(Token.Type.SYM_OPEN_PAREN, "(", input.location);
+            return new Token(Token.Type.OPEN_PAREN, "(", input.location);
         case ')':
-            return new Token(Token.Type.SYM_CLOSE_PAREN, ")", input.location);
+            return new Token(Token.Type.CLOSE_PAREN, ")", input.location);
         case '{':
-            return new Token(Token.Type.SYM_OPEN_MUSTACHE, "{", input.location);
+            return new Token(Token.Type.OPEN_MUSTACHE, "{", input.location);
         case '}':
-            return new Token(Token.Type.SYM_CLOSE_MUSTACHE, "}", input.location);
-        case '\n':
-            return new Token(Token.Type.NEWLINE, "\n", input.location);
+            return new Token(Token.Type.CLOSE_MUSTACHE, "}", input.location);
+        case '[':
+            return new Token(Token.Type.OPEN_BRACKET, "[", input.location);
+        case ']':
+            return new Token(Token.Type.CLOSE_BRACKET, "]", input.location);
         default:
             break;
     }
@@ -207,6 +229,10 @@ Token lex_identifier(Input input) {
         c = input.get;
     }
     input.unget(c);
+
+    if (buf == "Int" || buf == "Real" || buf == "Void") {
+        return new Token(Token.Type.KEYWORD, buf.to!string, input.location);
+    }
 
     return new Token(Token.Type.IDENT, buf.to!string, input.location);
 }
