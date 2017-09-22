@@ -2,6 +2,7 @@ import std.algorithm;
 import std.conv;
 import std.array;
 
+import env;
 import type;
 import asmstate;
 import node;
@@ -42,7 +43,7 @@ class Func {
 	void call(Node[] args, AsmState state) {
 	    throw new Exception("unimplemented");
 	}
-	Node eval(Node[] args) {
+	Node eval(Node[] args, Env env) {
 	    if (!is_constexpr) { 
 		throw new Exception("internal error");
 	    }
@@ -60,7 +61,7 @@ class Func {
 class BuiltinFunc : Func {
     public:
 	alias CallT = void function(Node[], AsmState);
-	alias ConstexprT = Node function(Node[]); 
+	alias ConstexprT = Node function(Node[], Env env); 
 	CallT callfunc;
 	ConstexprT constexprfunc;
 
@@ -72,11 +73,11 @@ class BuiltinFunc : Func {
 	override void call(Node[] args, AsmState state) {
 	    callfunc(args, state);
 	}
-	override Node eval(Node[] args) {
+	override Node eval(Node[] args, Env env) {
 	    if (!is_constexpr) {
 		throw new Exception("internal error");
 	    }
-	    return constexprfunc(args);
+	    return constexprfunc(args, env);
 	}
 	override bool is_constexpr() {
 	    return constexprfunc !is null;

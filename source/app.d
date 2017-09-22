@@ -36,11 +36,8 @@ void main(string[] args)
     else {
         OutBuffer o = new OutBuffer();
         node.analyze;
-        stderr.writeln("analyze");
         node = node.eval;
-        stderr.writeln("eval");
         node.emit;
-        stderr.writeln("emit");
 
         OutBuffer header = new OutBuffer();
         asm_head(header);

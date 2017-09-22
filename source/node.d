@@ -20,38 +20,6 @@ class Node {
         abstract void emit();
 }
 
-void emit_int(Node node) {
-    if (node.type is Type.Int) {
-        node.emit;
-    }
-    else if (auto realNode = cast(RealNode)node) {
-        auto intNode = new IntNode(cast(long)realNode.v);
-        intNode.emit;
-    }
-    else if (node.type is Type.Real) {
-        node.emit;
-        Env.cur.state.write("cvtsd2si rax, xmm0");
-    }
-    else {
-        throw new Exception("unimplemented");
-    }
-}
-void emit_real(Node node) {
-    if (node.type is Type.Real) {
-        node.emit;
-    }
-    else if (auto intNode = cast(IntNode)node) {
-        auto realNode = new RealNode(cast(double)intNode.v);
-        realNode.emit;
-    }
-    else if (node.type is Type.Int) {
-        node.emit;
-        Env.cur.state.write("cvtsi2sd xmm0, rax");
-    }
-    else {
-        throw new Exception("unimplemented");
-    }
-}
 
 class IntNode : Node {
     public:
@@ -87,7 +55,7 @@ class RealNode : Node {
         }
         override bool is_constexpr() { return true; }
         override Type type() { return Type.Real; }
-        override void analyze() { env = Env.cur; }
+        override void analyze(){ env = Env.cur; }
         override Node eval() { return this; }
         override void emit() {
             auto idx = env.state.assign(8);
@@ -132,8 +100,8 @@ class FuncCall : Node {
         }
         override Node eval() {
             load();
-            foreach (arg; args) { arg = arg.eval; }
-            if (is_constexpr) { return func.eval(args); }
+            foreach (i; 0..args.length) { args[i] = args[i].eval; }
+            if (is_constexpr) { return func.eval(args, env); }
             return this;
         }
         override void emit() { 
@@ -147,7 +115,7 @@ class FuncCall : Node {
 
 class BlockNode : Node {
     public:
-        DeclBlock declBlock;
+        Node declBlock;
         Node[] nodes;
 
         this(Node[] nodes, DeclBlock declBlock) {
@@ -169,8 +137,8 @@ class BlockNode : Node {
             Env.exitScope();
         }
         override Node eval() {
-            if (declBlock !is null) { declBlock.eval; }
-            foreach (node; nodes) { node.eval(); }
+            if (declBlock !is null) { declBlock = declBlock.eval; }
+            foreach (i; 0..nodes.length) { nodes[i] = nodes[i].eval(); }
             return this;
         }
         override void emit() {
@@ -214,10 +182,10 @@ class DeclNode : Node {
 
 class DeclBlock : Node {
     public:
-        DeclNode[] decls;
+        Node[] decls;
 
         this(DeclNode[] decls) {
-            this.decls = decls;
+            foreach (decl; decls) { this.decls ~= decl; }
         }
         this(DeclBlock[] decls) {
             this.decls = [];
@@ -232,7 +200,7 @@ class DeclBlock : Node {
             foreach (decl; decls) { decl.analyze(); }
         }
         override Node eval() {
-            foreach (decl; decls) { decl.eval(); }
+            foreach (i; 0..decls.length) { decls[i] = decls[i].eval(); }
             return this;
         }
         override void emit() {

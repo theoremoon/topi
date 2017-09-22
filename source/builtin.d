@@ -6,11 +6,45 @@ import func;
 import node;
 import type;
 
+void emit_int(Node node) {
+    if (node.type is Type.Int) {
+        node.emit;
+    }
+    else if (auto realNode = cast(RealNode)node) {
+        auto intNode = new IntNode(cast(long)realNode.v);
+        intNode.emit;
+    }
+    else if (node.type is Type.Real) {
+        node.emit;
+        Env.cur.state.write("cvtsd2si rax, xmm0");
+    }
+    else {
+        throw new Exception("unimplemented");
+    }
+}
+void emit_real(Node node) {
+    if (node.type is Type.Real) {
+        node.emit;
+    }
+    else if (auto intNode = cast(IntNode)node) {
+        auto realNode = new RealNode(cast(double)intNode.v);
+        realNode.emit;
+    }
+    else if (node.type is Type.Int) {
+        node.emit;
+        Env.cur.state.write("cvtsi2sd xmm0, rax");
+    }
+    else {
+        throw new Exception("unimplemented");
+    }
+}
 string bin_constexpr(string name, string op) {
-    return "Node " ~ name ~ `(T1, T2, T3)(Node[] args) {
+    return "Node " ~ name ~ `(T1, T2, T3)(Node[] args, Env env) {
 		if (auto arg1 = cast(T1)(args[0].eval)) {
 		    if (auto arg2 = cast(T2)(args[1].eval)) {
-			return new T3(arg1.v ` ~ op ~` arg2.v);
+			T3 res = new T3(arg1.v ` ~ op ~` arg2.v);
+			res.env = env;
+			return res;
 		    } 
 		}
 		throw new Exception("Internal Error");
@@ -22,9 +56,11 @@ mixin (bin_constexpr("sub_constexpr", "-"));
 mixin (bin_constexpr("imul_constexpr", "*"));
 mixin (bin_constexpr("idiv_constexpr", "/"));
 
-Node neg_constexpr(T1)(Node[] args) {
+Node neg_constexpr(T1)(Node[] args, Env env) {
     if (auto arg1 = cast(T1)(args[0].eval)) {
-	return new T1(-arg1.v);
+	Node res =  new T1(-arg1.v);
+	res.env = env;
+	return res;
     }
     throw new Exception("Internal Error");
 }
