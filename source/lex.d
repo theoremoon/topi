@@ -84,7 +84,7 @@ Token lexOne(Input input) {
     token = lex_identifier(input);
     if (token.type != Token.Type.UNKNOWN) { return token.with_spaces(space[0], space[1]); }
 
-    return null;
+    return token.with_spaces(space[0], space[1]) ;
 }
 
 Token lex_real(Input input) {

@@ -80,6 +80,7 @@ Node parseFactor(Lexer lexer) {
             }
             return call;
         }
+        lexer.unget(paren);
 
         // variable
         return new VarNode(tok.str);
@@ -97,7 +98,6 @@ Node parseFactor(Lexer lexer) {
         return expr;
     }
     lexer.unget(tok);
-
     return lexer.parseNum;
 }
 
@@ -108,8 +108,6 @@ Node parseTerm(Lexer lexer, Node left = null) {
     }
 
     auto op = lexer.get;
-    if (op is null) { return left; }
-
     // binary *
     if (op.type == Token.Type.OP_MUL) {
         auto right = lexer.parseFactor;
@@ -131,7 +129,7 @@ Node parseTerm(Lexer lexer, Node left = null) {
     return left;
 }
 
-Node parseExpr(Lexer lexer, Node left = null) {
+Node parseAddsub(Lexer lexer, Node left = null) {
     if (left is null) {
         left = lexer.parseTerm;
         if (left is null) {
@@ -140,22 +138,45 @@ Node parseExpr(Lexer lexer, Node left = null) {
     }
 
     auto op = lexer.get;
-    if (op is null) {
-        return left;
-    }
-
     // binary +-
     if (op.type == Token.Type.SYM_ADD || op.type == Token.Type.SYM_SUB) {
         auto right = lexer.parseTerm;
         if (right is null) {
             throw new TopiException("expected right hand expr", lexer.loc);
         }
-        return lexer.parseExpr(new FuncCall(op.str, [left, right]));
+        return lexer.parseAddsub(new FuncCall(op.str, [left, right]));
     }
     // otherwise
     lexer.unget(op);
     return left;
 }
+
+Node parseAssign(Lexer lexer) {
+    auto left = lexer.parseAddsub;
+    if (left is null) { return null; }
+    if (!left.is_lvalue) { return left; }
+
+    auto op = lexer.get;
+    if (op.type != Token.Type.OP_ASSIGN) {
+        lexer.unget(op);
+        return left;
+    }
+
+    auto right = lexer.parseAssign;
+    if (right is null) {
+        throw new TopiException("expected right hand expr", lexer.loc);
+    }
+    return new FuncCall(op.str, [left, right]);
+}
+
+Node parseExpr(Lexer lexer) {
+    auto node = lexer.parseAssign;
+    if (node !is null) { return node; }
+    node = lexer.parseAddsub;
+    if (node !is null) { return node; }
+    return null;
+}
+
 
 DeclBlock parseDecl(Lexer lexer) {
     auto type = lexer.get;

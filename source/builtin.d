@@ -215,6 +215,25 @@ void register_builtin(Env env) {
 	throw new Exception("Internal Error");
     }
 
+    // assign
+    auto int_assign = function(Node[] args, AsmState state) {
+	throw new Exception("unimplemented");
+    };
+    auto int_assign_constexpr = function(Node[] args, Env env) {
+	if (! args[0].is_lvalue) {
+	    throw new Exception("left of = must be lvalue");
+	}
+	if (auto varNode = cast(VarNode)args[0]) {
+	    varNode.var.constexprNode = args[1].eval;
+	    return args[1];
+	}
+	throw new Exception("unimplemented");
+    };
+    succeeded = env.registerFunc(new BuiltinFunc("=", [Type.Int, Type.Int], Type.Int, null, int_assign, int_assign_constexpr));
+    if (!succeeded) {
+	throw new Exception("Internal Error");
+    }
+
     // neg
     auto int_neg = function(Node[] args, AsmState state) {
 	args[0].emit_int;

@@ -13,6 +13,7 @@ import asmstate;
 class Node {
     public:
         Env env = null;
+        abstract bool is_lvalue();
         abstract bool is_constexpr();
         abstract Type type();
         abstract void analyze();
@@ -27,6 +28,7 @@ class IntNode : Node {
         this(long v) {
             this.v = v;
         }
+        override bool is_lvalue() { return false; }
         override bool is_constexpr() { return true; }
         override Type type() { return Type.Int; }
         override void analyze() { env = Env.cur; }
@@ -53,6 +55,7 @@ class RealNode : Node {
         this(double v) {
             this.v = v;
         }
+        override bool is_lvalue() { return false; }
         override bool is_constexpr() { return true; }
         override Type type() { return Type.Real; }
         override void analyze(){ env = Env.cur; }
@@ -86,6 +89,7 @@ class FuncCall : Node {
             }
         }
 
+        override bool is_lvalue() { return false; }
         override bool is_constexpr() {
             load();
             return func.is_constexpr;
@@ -123,6 +127,7 @@ class BlockNode : Node {
             this.nodes = nodes;
         }
 
+        override bool is_lvalue() { return false; }
         override bool is_constexpr() {
             return all(nodes.map!(a => a.is_constexpr));
         }
@@ -160,6 +165,7 @@ class DeclNode : Node {
             this.varname = varname;
         }
 
+        override bool is_lvalue() { return false; }
         override bool is_constexpr() { return true; }
         override Type type() { return Type.Void; }
         override void analyze() { env = Env.cur; }
@@ -193,6 +199,7 @@ class DeclBlock : Node {
                 this.decls ~= decl.decls;
             }
         }
+        override bool is_lvalue() { return false; }
         override bool is_constexpr() { return true; }
         override Type type() { return Type.Void; }
         override void analyze() {
@@ -226,7 +233,8 @@ class VarNode : Node {
             }
         }
         
-        override bool is_constexpr() { /*return still_constexpr;*/ return false; }
+        override bool is_lvalue() { return true; }
+        override bool is_constexpr() { return still_constexpr; }
         override Type type() {
             load();
             return var.type;
@@ -234,6 +242,7 @@ class VarNode : Node {
         override void analyze() { env = Env.cur; }
         override Node eval() {
             load();
+            if (var.constexprNode !is null) { return var.constexprNode; }
             return this;
         }
         override void emit() { 
