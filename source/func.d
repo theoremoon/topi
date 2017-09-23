@@ -15,7 +15,6 @@ class Func {
 	Type[] argtypes;
 	Type rettype;
 	EmitT emitfunc;
-	bool constexpr_flag = false;
 
 	static string signature(string name, Node[] args) {
 	    return name~"("~args.map!(a => a.type.to!string).join(",")~")";
@@ -43,44 +42,23 @@ class Func {
 	void call(Node[] args, AsmState state) {
 	    throw new Exception("unimplemented");
 	}
-	Node eval(Node[] args, Env env) {
-	    if (!is_constexpr) { 
-		throw new Exception("internal error");
-	    }
-	    return null;
-	}
 
 	Type type() {
 	    return rettype;
-	}
-	bool is_constexpr() {
-	    return constexpr_flag;
 	}
 }
 
 class BuiltinFunc : Func {
     public:
 	alias CallT = void function(Node[], AsmState);
-	alias ConstexprT = Node function(Node[], Env env); 
 	CallT callfunc;
-	ConstexprT constexprfunc;
 
-	this(string name, Type[] argtypes, Type rettype, EmitT emitfunc, CallT callfunc, ConstexprT constexprfunc = null) {
+	this(string name, Type[] argtypes, Type rettype, EmitT emitfunc, CallT callfunc) {
 	    super(name, argtypes, rettype, emitfunc);
 	    this.callfunc = callfunc;
-	    this.constexprfunc = constexprfunc;
 	}
 	override void call(Node[] args, AsmState state) {
 	    callfunc(args, state);
-	}
-	override Node eval(Node[] args, Env env) {
-	    if (!is_constexpr) {
-		throw new Exception("internal error");
-	    }
-	    return constexprfunc(args, env);
-	}
-	override bool is_constexpr() {
-	    return constexprfunc !is null;
 	}
 }
 

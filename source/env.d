@@ -35,7 +35,6 @@ class Env {
 	Env parent = null;
 	Func[string] funcs;
 	Type[string] types;
-	Var[string] vars;
 	AsmState state;
 
 	this() {
@@ -71,17 +70,4 @@ class Env {
 	    types[t.to!string] = t;
 	    return true;
 	}
-
-	Var getVar(string varname) {
-	    if (varname in vars) { return vars[varname]; }
-	    if (parent is null) { return null; }
-	    return parent.getVar(varname);
-	}
-	bool registerVar(Var v) {
-	    if (getVar(v.to!string) !is null) { return false; }
-	    vars[v.to!string] = v;
-	    return true;
-	}
-
-
 }

@@ -38,35 +38,6 @@ void emit_real(Node node) {
         throw new Exception("unimplemented");
     }
 }
-string bin_constexpr(string name, string op) {
-    return "Node " ~ name ~ `(T1, T2, T3)(Node[] args, Env env) {
-		if (auto arg1 = cast(T1)(args[0].eval)) {
-		    if (auto arg2 = cast(T2)(args[1].eval)) {
-			T3 res = new T3(arg1.v ` ~ op ~` arg2.v);
-			res.env = env;
-			return res;
-		    } 
-		}
-		throw new Exception("Internal Error");
-	    }`;
-}
-
-mixin (bin_constexpr("add_constexpr", "+"));
-mixin (bin_constexpr("sub_constexpr", "-"));
-mixin (bin_constexpr("imul_constexpr", "*"));
-mixin (bin_constexpr("idiv_constexpr", "/"));
-
-Node neg_constexpr(T1)(Node[] args, Env env) {
-    if (auto arg1 = cast(T1)(args[0].eval)) {
-	Node res =  new T1(-arg1.v);
-	res.env = env;
-	return res;
-    }
-    throw new Exception("Internal Error");
-}
-
-
-
 void register_builtin(Env env) {
     bool succeeded;
 
@@ -89,19 +60,19 @@ void register_builtin(Env env) {
 	state.write("add rsp,0x8");
 	state.write("addsd xmm0,xmm1");
     };
-    succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Int, Type.Int], Type.Int, null, int_add, &add_constexpr!(IntNode, IntNode, IntNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Int, Type.Int], Type.Int, null, int_add));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Int, Type.Real], Type.Real, null, real_add, &add_constexpr!(IntNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Int, Type.Real], Type.Real, null, real_add));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Real, Type.Int], Type.Real, null, real_add, &add_constexpr!(RealNode, IntNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Real, Type.Int], Type.Real, null, real_add));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Real, Type.Real], Type.Real, null, real_add, &add_constexpr!(RealNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("+", [Type.Real, Type.Real], Type.Real, null, real_add));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
@@ -125,19 +96,19 @@ void register_builtin(Env env) {
 	state.write("add rsp,0x8");
 	state.write("subsd xmm0,xmm1");
     };
-    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Int, Type.Int], Type.Int, null, int_sub, &sub_constexpr!(IntNode, IntNode, IntNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Int, Type.Int], Type.Int, null, int_sub));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Real, Type.Int], Type.Real, null, real_sub, &sub_constexpr!(RealNode, IntNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Real, Type.Int], Type.Real, null, real_sub));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Int, Type.Real], Type.Real, null, real_sub, &sub_constexpr!(IntNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Int, Type.Real], Type.Real, null, real_sub));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Real, Type.Real], Type.Real, null, real_sub, &sub_constexpr!(RealNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Real, Type.Real], Type.Real, null, real_sub));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
@@ -161,19 +132,19 @@ void register_builtin(Env env) {
 	state.write("add rsp,0x8");
 	state.write("mulsd xmm0,xmm1");
     };
-    succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Int, Type.Int], Type.Int, null, int_imul, &imul_constexpr!(IntNode, IntNode, IntNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Int, Type.Int], Type.Int, null, int_imul));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Real, Type.Int], Type.Real, null, real_imul, &imul_constexpr!(RealNode, IntNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Real, Type.Int], Type.Real, null, real_imul));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Int, Type.Real], Type.Real, null, real_imul, &imul_constexpr!(IntNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Int, Type.Real], Type.Real, null, real_imul));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Real, Type.Real], Type.Real, null, real_imul, &imul_constexpr!(RealNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("*", [Type.Real, Type.Real], Type.Real, null, real_imul));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
@@ -198,19 +169,19 @@ void register_builtin(Env env) {
 	state.write("add rsp,0x8");
 	state.write("divsd xmm0,xmm1");
     };
-    succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Int, Type.Int], Type.Int, null, int_idiv, &idiv_constexpr!(IntNode, IntNode, IntNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Int, Type.Int], Type.Int, null, int_idiv));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Real, Type.Int], Type.Real, null, real_idiv, &idiv_constexpr!(RealNode, IntNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Real, Type.Int], Type.Real, null, real_idiv));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Int, Type.Real], Type.Real, null, real_idiv, &idiv_constexpr!(IntNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Int, Type.Real], Type.Real, null, real_idiv));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Real, Type.Real], Type.Real, null, real_idiv, &idiv_constexpr!(RealNode, RealNode, RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("/", [Type.Real, Type.Real], Type.Real, null, real_idiv));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
@@ -219,17 +190,7 @@ void register_builtin(Env env) {
     auto int_assign = function(Node[] args, AsmState state) {
 	throw new Exception("unimplemented");
     };
-    auto int_assign_constexpr = function(Node[] args, Env env) {
-	if (! args[0].is_lvalue) {
-	    throw new Exception("left of = must be lvalue");
-	}
-	if (auto varNode = cast(VarNode)args[0]) {
-	    varNode.var.constexprNode = args[1].eval;
-	    return args[1];
-	}
-	throw new Exception("unimplemented");
-    };
-    succeeded = env.registerFunc(new BuiltinFunc("=", [Type.Int, Type.Int], Type.Int, null, int_assign, int_assign_constexpr));
+    succeeded = env.registerFunc(new BuiltinFunc("=", [Type.Int, Type.Int], Type.Int, null, int_assign));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
@@ -245,11 +206,11 @@ void register_builtin(Env env) {
 	state.write("xorps xmm0,xmm0");
 	state.write("subsd xmm0,xmm1");
     };
-    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Int], Type.Int, null, int_neg, &neg_constexpr!(IntNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Int], Type.Int, null, int_neg));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
-    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Real], Type.Real, null, real_neg, &neg_constexpr!(RealNode)));
+    succeeded = env.registerFunc(new BuiltinFunc("-", [Type.Real], Type.Real, null, real_neg));
     if (!succeeded) {
 	throw new Exception("Internal Error");
     }
