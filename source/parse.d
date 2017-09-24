@@ -1,41 +1,43 @@
 import std.conv;
 
-import ctnode;
+import node;
 import token;
 import lex;
 import exception;
 
-CTNode parseNum(Lexer lexer) {
+Node parseNum(Lexer lexer) {
     auto tok = lexer.get;
 
     if (tok.type == Token.Type.REAL) {
-        return new CTReal(tok.str.to!double);
+        return new RealNode(tok, tok.str.to!double);
     }
     if (tok.type == Token.Type.DIGIT) {
-        return new CTInt(tok.str.to!long(10));
+        return new IntNode(tok, tok.str.to!long(10));
     }
     if (tok.type == Token.Type.HEX) {
-        return new CTInt(tok.str.to!long(16));
+        return new IntNode(tok, tok.str.to!long(16));
     }
     lexer.unget(tok);
     return null;
 }
 
-CTNode parseFuncCall(Lexer lexer) {
-    auto fname = lexer.get;
-    if (fname.type != Token.Type.IDENT) {
-        lexer.unget(fname);
-        return null;
+Node parseFactor(Lexer lexer) {
+    auto tok = lexer.get;
+    // identifier
+    if (tok.type == Token.Type.IDENT) {
+        return new SymbolNode(tok);
     }
+    lexer.unget(tok);
+    return lexer.parseNum;
+}
 
+Node[] parseFuncArgs(Lexer lexer) {
     auto open = lexer.get;
     if (open.type != Token.Type.OPEN_PAREN) {
-        lexer.unget(fname);
         lexer.unget(open);
         return null;
     }
-    
-    CTNode[] exprs = [];
+    Node[] exprs = [];
     while (true) {
         auto expr = lexer.parseExpr;
         if (expr is null) { break; }
@@ -50,105 +52,37 @@ CTNode parseFuncCall(Lexer lexer) {
     if (close.type != Token.Type.CLOSE_PAREN) {
         throw new TopiException("CLOSE PARENTHES ) is required", close.loc);
     }
-    return ct_funccall(fname.str, exprs);
+    return exprs;
 }
 
-CTNode parseFactor(Lexer lexer) {
-    auto tok = lexer.get;
-    // unary +
-    if (tok.type == Token.Type.SYM_ADD) {
-        return lexer.parseFactor;
-    }
-    // unary -
-    if (tok.type == Token.Type.SYM_SUB) {
-        return ct_funccall("-", [lexer.parseFactor]);
-    }
-    // identifier
-    if (tok.type == Token.Type.IDENT) {
-        auto paren = lexer.get;
-        // func call
-        if (paren.type == Token.Type.OPEN_PAREN) {
-            lexer.unget(paren);
-            lexer.unget(tok);
+Node parseCall(Lexer lexer) {
+    auto func = lexer.parseFactor;
+    if (func is null) { return null; }
 
-            auto call = parseFuncCall(lexer);
-            if (call is null) {
-                throw new TopiException("function call syntax is expected", lexer.loc);
-            }
-            return call;
-        }
-        lexer.unget(paren);
-        return new CTSymbol(tok.str);
+    auto open = lexer.get;
+    lexer.unget(open);
+    if (open.type != Token.Type.OPEN_PAREN) {
+        return func;
     }
-    // (expr)
-    if (tok.type == Token.Type.OPEN_PAREN) {
-        auto expr = lexer.parseExpr;
-        if (expr is null) {
-            throw new TopiException("expression is required for (expr)", lexer.loc);
-        }
-        auto close = lexer.get;
-        if (close.type != Token.Type.CLOSE_PAREN) {
-            throw new TopiException("close paren is required", lexer.loc);
-        }
-        return expr;
+
+    auto args = lexer.parseFuncArgs;
+    if (args is null) {
+        throw new TopiException("function call syntax is expected", open.loc);
     }
-    lexer.unget(tok);
-    return lexer.parseNum;
+
+    return new CTFuncCallNode(func, args);
 }
 
-CTNode parseTerm(Lexer lexer, CTNode left = null) {
-    if (left is null) {
-        left = lexer.parseFactor;
-        if (left is null) { return null; }
-    }
-
-    auto op = lexer.get;
-    // binary * or /
-    if (op.type == Token.Type.OP_MUL || op.type == Token.Type.SYM_SLASH) {
-        auto right = lexer.parseFactor;
-        if (right is null) {
-            throw new TopiException("expected right hand expr", lexer.loc);
-        }
-        return parseTerm(lexer, ct_funccall(op.str, [left, right]));
-    }
-    // otherwise
-    lexer.unget(op);
-    return left;
-}
-
-
-CTNode parseAddsub(Lexer lexer, CTNode left = null) {
-    if (left is null) {
-        left = lexer.parseTerm;
-        if (left is null) {
-            return null;
-        }
-    }
-
-    auto op = lexer.get;
-    // binary +-
-    if (op.type == Token.Type.SYM_ADD || op.type == Token.Type.SYM_SUB) {
-        auto right = lexer.parseTerm;
-        if (right is null) {
-            throw new TopiException("expected right hand expr", lexer.loc);
-        }
-        return lexer.parseTerm(ct_funccall(op.str, [left, right]));
-    }
-    // otherwise
-    lexer.unget(op);
-    return left;
-}
-
-CTNode parseExpr(Lexer lexer) {
+Node parseExpr(Lexer lexer) {
     // auto node = lexer.parseAssign;
     // if (node !is null) { return node; }
-    auto node = lexer.parseAddsub;
+    auto node = lexer.parseCall;
     if (node !is null) { return node; }
     return null;
 }
 
-CTNode parseToplevel(Lexer lexer) {
-    return lexer.parseAddsub;
+Node parseToplevel(Lexer lexer) {
+    return lexer.parseExpr;
 }
 
 // 
@@ -259,3 +193,91 @@ CTNode parseToplevel(Lexer lexer) {
 //     return new BlockNode(nodes, declBlock);
 // }
 // 
+/+
+
+CTNode parseFactor(Lexer lexer) {
+    auto tok = lexer.get;
+    // unary +
+    if (tok.type == Token.Type.SYM_ADD) {
+        return lexer.parseFactor;
+    }
+    // unary -
+    if (tok.type == Token.Type.SYM_SUB) {
+        return ct_funccall("-", [lexer.parseFactor]);
+    }
+    // identifier
+    if (tok.type == Token.Type.IDENT) {
+        auto paren = lexer.get;
+        // func call
+        if (paren.type == Token.Type.OPEN_PAREN) {
+            lexer.unget(paren);
+            lexer.unget(tok);
+
+            auto call = parseFuncCall(lexer);
+            if (call is null) {
+                throw new TopiException("function call syntax is expected", lexer.loc);
+            }
+            return call;
+        }
+        lexer.unget(paren);
+        return new CTSymbol(tok.str);
+    }
+    // (expr)
+    if (tok.type == Token.Type.OPEN_PAREN) {
+        auto expr = lexer.parseExpr;
+        if (expr is null) {
+            throw new TopiException("expression is required for (expr)", lexer.loc);
+        }
+        auto close = lexer.get;
+        if (close.type != Token.Type.CLOSE_PAREN) {
+            throw new TopiException("close paren is required", lexer.loc);
+        }
+        return expr;
+    }
+    lexer.unget(tok);
+    return lexer.parseNum;
+}
+
+CTNode parseTerm(Lexer lexer, CTNode left = null) {
+    if (left is null) {
+        left = lexer.parseFactor;
+        if (left is null) { return null; }
+    }
+
+    auto op = lexer.get;
+    // binary * or /
+    if (op.type == Token.Type.OP_MUL || op.type == Token.Type.SYM_SLASH) {
+        auto right = lexer.parseFactor;
+        if (right is null) {
+            throw new TopiException("expected right hand expr", lexer.loc);
+        }
+        return parseTerm(lexer, ct_funccall(op.str, [left, right]));
+    }
+    // otherwise
+    lexer.unget(op);
+    return left;
+}
+
+
+CTNode parseAddsub(Lexer lexer, CTNode left = null) {
+    if (left is null) {
+        left = lexer.parseTerm;
+        if (left is null) {
+            return null;
+        }
+    }
+
+    auto op = lexer.get;
+    // binary +-
+    if (op.type == Token.Type.SYM_ADD || op.type == Token.Type.SYM_SUB) {
+        auto right = lexer.parseTerm;
+        if (right is null) {
+            throw new TopiException("expected right hand expr", lexer.loc);
+        }
+        return lexer.parseTerm(ct_funccall(op.str, [left, right]));
+    }
+    // otherwise
+    lexer.unget(op);
+    return left;
+}
++/
