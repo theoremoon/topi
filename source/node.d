@@ -240,7 +240,7 @@ class BuiltinFunc : Func {
 class Env {
     public:
 	Func[] funcs;
-	CTVarNode[string] vars;
+	Node[string] vars;
 	Type[string] types;
 
 	// allowing conversion rvalue -> lvalue 
@@ -263,13 +263,13 @@ class Env {
 	    return true;
 	}
 
-	CTVarNode getVar(string name) {
+	Node getVar(string name) {
 	    if (name in vars) { return vars[name]; }
 	    return null;
 	}
-	bool registerVar(CTVarNode var) {
-	    if (var.name in vars) { return false; }
-	    vars[var.name] = var;
+	bool registerVar(string name, Node var) {
+	    if (name in vars) { return false; }
+	    vars[name] = var;
 	    return true;
 	}
 
@@ -288,7 +288,9 @@ FuncNode getFunc(Node node, Node[] args, Env env) {
     // args is already evaluated
     if (auto func = cast(FuncNode)node) { return func; }
     if (auto symbolNode = cast(SymbolNode)node) {
-	Func func = env.getFunc(symbolNode.name, args.map!(a => a.type));
+	Type[] argtypes = [];
+	foreach (arg; args) { argtypes ~= arg.type; }
+	Func func = env.getFunc(symbolNode.name, argtypes);
 	if (func is null) { return null; }
 	return new FuncNode(func);
     }
