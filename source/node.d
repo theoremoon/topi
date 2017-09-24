@@ -97,6 +97,61 @@ class CTFuncCallNode : Node {
 	}
 }
 
+/// variable delcaration
+class CTDeclNode : Node {
+    public:
+	string typename;
+	string varname;
+
+	this (Token typename, Token varname) {
+	    super(varname);
+	    this.typename = typename.str;
+	    this.varname = varname.str;
+	}
+	override Type type() { return Type.Void; }
+	override string toString() {
+	    return "(decl %s %s)".format(typename, varname);
+	}
+
+}
+
+class CTDeclBlock : Node {
+    public:
+	CTDeclNode[] decls;
+
+        this(CTDeclNode[] decls) {
+	    super(null);
+            this.decls = decls;
+        }
+        this(CTDeclBlock[] decls) {
+	    super(null);
+            this.decls = [];
+            foreach (decl; decls) {
+                this.decls ~= decl.decls;
+            }
+        } 
+	override Type type() { return Type.Void; }
+	override string toString() {
+	    return decls.map!(to!string).join(" ");
+	}
+}
+
+class CTBlockNode : Node {
+    public:
+	CTDeclBlock declBlock;
+	Node[] nodes;
+
+        this(Node[] nodes, CTDeclBlock declBlock) {
+	    super(null);
+            this.declBlock = declBlock;
+            this.nodes = nodes;
+        }
+	override Type type() { return Type.Void; }
+	override string toString() {
+	    return "(%s\n%s\n)".format(declBlock.to!string, nodes.map!(to!string).join("\n"));
+	}
+}
+
 /// function
 class Func {
     public:
@@ -146,17 +201,40 @@ class BuiltinFunc : Func {
 	    this.constexprFunc = constexprFunc;
 	}
 }
+
 class Env {
     public:
 	Func[string] funcs;
+	Node[string] vars;
+	Type[string] types;
 
 	Func getFunc(string sign) {
 	    if (sign in funcs) { return funcs[sign]; }
 	    return null;
 	}
 	bool registerFunc(Func f) {
-	    if (getFunc(f.signature) !is null) { return false; }
+	    if (f.signature in funcs) { return false; }
 	    funcs[f.signature] = f;
+	    return true;
+	}
+
+	Node getVar(string name) {
+	    if (name in vars) { return vars[name]; }
+	    return null;
+	}
+	bool registerVar(string name, Node val) {
+	    if (name in vars) { return false; }
+	    vars[name] = val;
+	    return true;
+	}
+
+	Type getType(string name) {
+	    if (name in types) { return types[name]; }
+	    return null;
+	}
+	bool registerType(Type t) {
+	    if (t.to!string in types) { return false; }
+	    types[t.to!string] = t;
 	    return true;
 	}
 }
@@ -175,12 +253,32 @@ FuncNode getFunc(Node node, Node[] args, Env env) {
 Node call(Func func, Node[] args, Env env) {
     // func should be constexpr 
     // args is already evaluated
-    import std.stdio;
-    writeln("[*]func is ", typeid(func));
     if (auto builtin = cast(BuiltinFunc)func) {
 	return builtin.constexprFunc(args, env);
     }
     throw new Exception("internal error: call for func is unimplemented");
+}
+
+Node defaultValue(Type t) {
+    if (t == Type.Int) {
+	return new IntNode(null, 0);
+    }
+    if (t == Type.Real) {
+	return new RealNode(null, 0);
+    }
+    throw new Exception("defaultValue for %s is unimplemented".format(t.to!string));
+}
+
+/// variable declaration
+void declVars(CTDeclBlock declBlock, Env env) {
+    foreach (decl; declBlock.decls) {
+	auto t = env.getType(decl.typename);
+	if (t is null) {
+	    throw new TopiException("Invalid type " ~ decl.typename, decl.loc);
+	}
+	// FIXME: defualt value
+	env.registerVar(decl.varname, t.defaultValue);
+    }
 }
 
 Node eval(Node node) {
@@ -194,6 +292,10 @@ Node eval(Node node) {
 	}
 	throw new Exception("invalid arguments: "~args.to!string);
     }));
+
+    env.registerType(Type.Int); 
+    env.registerType(Type.Real); 
+    env.registerType(Type.Void); 
     return node.eval(env);
 }
 Node eval(Node node, Env env) {
@@ -214,8 +316,23 @@ Node eval(Node node, Env env) {
 	}
 	return new CTFuncCallNode(funcNode, evaledArgs);
     }
+    if (auto blockNode = cast(CTBlockNode)node) {
+	blockNode.declBlock.declVars(env);
+
+	// evaluate body
+	Node[] evaledNodes = [];
+	foreach (node2; blockNode.nodes) {
+	    evaledNodes ~= node2.eval(env);
+	}
+
+	return new CTBlockNode(evaledNodes, blockNode.declBlock);
+    }
     if (auto symbolNode = cast(SymbolNode)node) {
-	throw new TopiException("unknown name %s".format(symbolNode.to!string), symbolNode.loc);
+	auto var = env.getVar(symbolNode.name);
+	if (var is null) {
+	    throw new TopiException("unknown name %s".format(symbolNode.to!string), symbolNode.loc);
+	}
+	return var;
     }
     // primitive
     return node;
