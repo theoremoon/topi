@@ -97,6 +97,21 @@ class CTFuncCallNode : Node {
 	}
 }
 
+class CTVarNode : Node {
+    public:
+	string name;
+	Node val;
+	this(string name, Node val) {
+	    super(null);
+	    this.name = name;
+	    this.val = val;
+	}
+	override Type type() { return val.type; }
+	override string toString() { 
+	    return "%s[=%s]".format(name, val.to!string);
+	}
+}
+
 /// variable delcaration
 class CTDeclNode : Node {
     public:
@@ -180,6 +195,26 @@ class Func {
 	}
 	string signature() { return Func.signature(name, argtypes); }
 	bool is_constexpr() { return isconstexpr; }
+
+	// allowing conversion rvalue -> lvalue 
+	bool same_rvalue_signature(string name, Type[] argtypes) {
+	    if (this.name != name) { return false; }
+	    if (this.argtypes.length != argtypes.length) { return false; }
+	    foreach (i; 0..(this.argtypes.length)) {
+		if (!this.argtypes[i].same_rvalue(argtypes[i])) { return false; }
+	    }
+	    return true;
+	}
+	// ignoring is_lvalue
+	bool same_signature(string name, Type[] argtypes) {
+	    if (this.name != name) { return false; }
+	    if (this.argtypes.length != argtypes.length) { return false; }
+	    foreach (i; 0..(this.argtypes.length)) {
+		if (!this.argtypes[i].same_signature(argtypes[i])) { return false; }
+	    }
+	    return true;
+	}
+
 }
 
 /// built-in function
@@ -204,27 +239,37 @@ class BuiltinFunc : Func {
 
 class Env {
     public:
-	Func[string] funcs;
-	Node[string] vars;
+	Func[] funcs;
+	CTVarNode[string] vars;
 	Type[string] types;
 
-	Func getFunc(string sign) {
-	    if (sign in funcs) { return funcs[sign]; }
+	// allowing conversion rvalue -> lvalue 
+	Func getFunc(string fname, Type[] argtypes) {
+	    foreach (f; funcs) {
+		if (f.same_rvalue_signature(fname, argtypes))  { return f; }
+	    }
+	    return null;
+	}
+	// ignoring is_lvalue
+	Func strictGetFunc(string fname, Type[] argtypes) {
+	    foreach (f; funcs) {
+		if (f.same_signature(fname, argtypes)) { return f; }
+	    }
 	    return null;
 	}
 	bool registerFunc(Func f) {
-	    if (f.signature in funcs) { return false; }
-	    funcs[f.signature] = f;
+	    if (strictGetFunc(f.name, f.argtypes)) { return false; }
+	    funcs ~= f;
 	    return true;
 	}
 
-	Node getVar(string name) {
+	CTVarNode getVar(string name) {
 	    if (name in vars) { return vars[name]; }
 	    return null;
 	}
-	bool registerVar(string name, Node val) {
-	    if (name in vars) { return false; }
-	    vars[name] = val;
+	bool registerVar(CTVarNode var) {
+	    if (var.name in vars) { return false; }
+	    vars[var.name] = var;
 	    return true;
 	}
 
@@ -243,7 +288,7 @@ FuncNode getFunc(Node node, Node[] args, Env env) {
     // args is already evaluated
     if (auto func = cast(FuncNode)node) { return func; }
     if (auto symbolNode = cast(SymbolNode)node) {
-	Func func = env.getFunc(Func.signature(symbolNode.name, args));
+	Func func = env.getFunc(symbolNode.name, args.map!(a => a.type));
 	if (func is null) { return null; }
 	return new FuncNode(func);
     }
@@ -285,6 +330,14 @@ Node eval(Node node) {
     Env env = new Env();
     env.registerFunc(new BuiltinFunc("print", [Type.Int], Type.Void, "", null, null));
     env.registerFunc(new BuiltinFunc("+", [Type.Int, Type.Int], Type.Int, "", null, function(Node[] args, Env env) {
+	if (auto intA = cast(IntNode)args[0]) {
+	    if (auto intB = cast(IntNode)args[1]) {
+	    return new IntNode(null, intA.v + intB.v);
+	    }
+	}
+	throw new Exception("invalid arguments: "~args.to!string);
+    }));
+    env.registerFunc(new BuiltinFunc("=", [Type.Int, Type.Int], Type.Int, "", null, function(Node[] args, Env env) {
 	if (auto intA = cast(IntNode)args[0]) {
 	    if (auto intB = cast(IntNode)args[1]) {
 	    return new IntNode(null, intA.v + intB.v);
