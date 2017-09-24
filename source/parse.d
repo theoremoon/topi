@@ -73,10 +73,32 @@ Node parseCall(Lexer lexer) {
     return new CTFuncCallNode(func, args);
 }
 
+Node parseAddsub(Lexer lexer, Node left = null) {
+    if (left is null) {
+        left = lexer.parseCall;
+        if (left is null) {
+            return null;
+        }
+    }
+
+    auto op = lexer.get;
+    // binary +-
+    if (op.type == Token.Type.SYM_ADD || op.type == Token.Type.SYM_SUB) {
+        auto right = lexer.parseCall;
+        if (right is null) {
+            throw new TopiException("expected right hand expr", lexer.loc);
+        }
+        return lexer.parseAddsub(CTFuncCallNode.fromToken(op, [left, right]));
+    }
+    // otherwise
+    lexer.unget(op);
+    return left;
+}
+
 Node parseExpr(Lexer lexer) {
     // auto node = lexer.parseAssign;
     // if (node !is null) { return node; }
-    auto node = lexer.parseCall;
+    auto node = lexer.parseAddsub;
     if (node !is null) { return node; }
     return null;
 }
@@ -259,25 +281,4 @@ CTNode parseTerm(Lexer lexer, CTNode left = null) {
 }
 
 
-CTNode parseAddsub(Lexer lexer, CTNode left = null) {
-    if (left is null) {
-        left = lexer.parseTerm;
-        if (left is null) {
-            return null;
-        }
-    }
-
-    auto op = lexer.get;
-    // binary +-
-    if (op.type == Token.Type.SYM_ADD || op.type == Token.Type.SYM_SUB) {
-        auto right = lexer.parseTerm;
-        if (right is null) {
-            throw new TopiException("expected right hand expr", lexer.loc);
-        }
-        return lexer.parseTerm(ct_funccall(op.str, [left, right]));
-    }
-    // otherwise
-    lexer.unget(op);
-    return left;
-}
 +/

@@ -71,6 +71,10 @@ class FuncNode : Node {
 /// compile-time function call 
 class CTFuncCallNode : Node {
     public:
+	static fromToken(Token tok, Node[] args) {
+	    auto symbol = new SymbolNode(tok);
+	    return new CTFuncCallNode(symbol, args);
+	}
 	Node func;
 	Node[] args;
 	this(Node func, Node[] args) {
@@ -82,7 +86,12 @@ class CTFuncCallNode : Node {
 	    return "%s(%s)".format(func.to!string, args.map!(a => a.type.to!string).join(","));
 	}
 	/// REVIEW
-	override Type type() { return func.type; }
+	override Type type() {
+	    if (auto funcNode = cast(FuncNode)func) {
+		return funcNode.func.rettype;
+	    }
+	    throw new Exception("internal error: func is not FuncNode");
+	}
 	override string toString() { 
 	    return "(%s %s)".format(func.to!string, args.map!(to!string).join(" "));
 	}
@@ -106,6 +115,11 @@ class Func {
 	    this.rettype = rettype;
 	    this.isconstexpr = isconstexpr;
 	}
+	static string signature(string name, Node[] args) {
+	    Type[] argtypes = [];
+	    foreach (arg; args) { argtypes ~= arg.type; }
+	    return signature(name, argtypes);
+	}
 	static string signature(string name, Type[] argtypes) {
 	    return name~"("~argtypes.map!(to!string).join(",")~")";
 	}
@@ -125,8 +139,8 @@ class BuiltinFunc : Func {
 	CallT callfunc;
 	ConstexprT constexprFunc;
 
-	this(string name, Type[] argtypes, Type rettype, string emitstr, CallT callfunc, ConstexprT constexprFunc, bool isconstexpr = false) {
-	    super(name, argtypes, rettype, isconstexpr); 
+	this(string name, Type[] argtypes, Type rettype, string emitstr, CallT callfunc, ConstexprT constexprFunc) {
+	    super(name, argtypes, rettype, constexprFunc !is null); 
 	    this.emitstr = emitstr;
 	    this.callfunc = callfunc;
 	    this.constexprFunc = constexprFunc;
@@ -147,38 +161,58 @@ class Env {
 	}
 }
 
-FuncNode getFunc(CTFuncCallNode node, Env env) {
-    if (auto func = cast(FuncNode)(node.func)) { return func; }
-    if (auto symbolNode = cast(SymbolNode)(node.func)) {
-	import std.stdio;
-	writeln("[*]signature is ", node.signature);
-	Func func = env.getFunc(node.signature);
+FuncNode getFunc(Node node, Node[] args, Env env) {
+    // args is already evaluated
+    if (auto func = cast(FuncNode)node) { return func; }
+    if (auto symbolNode = cast(SymbolNode)node) {
+	Func func = env.getFunc(Func.signature(symbolNode.name, args));
 	if (func is null) { return null; }
 	return new FuncNode(func);
     }
     return null;
 }
 
+Node call(Func func, Node[] args, Env env) {
+    // func should be constexpr 
+    // args is already evaluated
+    import std.stdio;
+    writeln("[*]func is ", typeid(func));
+    if (auto builtin = cast(BuiltinFunc)func) {
+	return builtin.constexprFunc(args, env);
+    }
+    throw new Exception("internal error: call for func is unimplemented");
+}
+
 Node eval(Node node) {
     Env env = new Env();
     env.registerFunc(new BuiltinFunc("print", [Type.Int], Type.Void, "", null, null));
+    env.registerFunc(new BuiltinFunc("+", [Type.Int, Type.Int], Type.Int, "", null, function(Node[] args, Env env) {
+	if (auto intA = cast(IntNode)args[0]) {
+	    if (auto intB = cast(IntNode)args[1]) {
+	    return new IntNode(null, intA.v + intB.v);
+	    }
+	}
+	throw new Exception("invalid arguments: "~args.to!string);
+    }));
     return node.eval(env);
 }
 Node eval(Node node, Env env) {
     if (auto funcCallNode = cast(CTFuncCallNode)node) {
-	// get function object from funcCallNode.func
-	auto func = funcCallNode.getFunc(env);
-	if (func is null) {
-	    throw new TopiException("%s is not a function".format(func.to!string), funcCallNode.loc); 
-	}
+	// evaluate arguments
 	Node[] evaledArgs = [];
 	foreach (arg; funcCallNode.args) {
 	    evaledArgs ~= arg.eval(env);
 	}
-	if (func.is_constexpr) {
-	    // return func.call(evaledArgs, env);
+
+	// get function object from funcCallNode.func
+	auto funcNode = getFunc(funcCallNode.func, evaledArgs, env);
+	if (funcNode is null) {
+	    throw new TopiException("%s is not a function".format(funcNode.to!string), funcCallNode.loc); 
 	}
-	return new CTFuncCallNode(func, evaledArgs);
+	if (funcNode.is_constexpr) {
+	    return funcNode.func.call(evaledArgs, env);
+	}
+	return new CTFuncCallNode(funcNode, evaledArgs);
     }
     if (auto symbolNode = cast(SymbolNode)node) {
 	throw new TopiException("unknown name %s".format(symbolNode.to!string), symbolNode.loc);
