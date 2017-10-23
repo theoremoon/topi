@@ -108,7 +108,7 @@ Token lex_real(Input input, dchar[] buf) {
         c = input.peek();
     }
     // real value
-    return new Token(Token.Type.REAL, (buf ~ "." ~ buf2).to!string, input.location);
+    return new Token(Token.Type.REAL, (buf ~ buf2).to!string, input.location);
 }
 
 Token lex_hex(Input input) {
@@ -124,7 +124,7 @@ Token lex_hex(Input input) {
     if (buf.length == 0) {
         throw new TopiException("Invalid number 0x. hexadecimal number is expected.", input.location);
     }
-    return new Token(Token.Type.HEX, buf.to!string, input.location);
+    return new Token(Token.Type.HEX, "0x"~buf.to!string, input.location);
 }
 
 Token lex_number(Input input) {
@@ -141,7 +141,7 @@ Token lex_number(Input input) {
         // float
         if (c2 == '.') {
 	    input.consume();
-            return lex_real(input, "0x".to!dstring.dup);
+            return lex_real(input, "0.".to!dstring.dup);
         }
         throw new TopiException("Unknown prefix 0%c".format(c2), input.location);
     }
@@ -156,6 +156,7 @@ Token lex_number(Input input) {
         // float
         if (c == '.') {
 	    buf ~= c;
+	    input.consume();
             return lex_real(input, buf);
         }
         // digit
