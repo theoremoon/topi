@@ -5,6 +5,7 @@ import std.algorithm;
 import std.array;
 import env, node, func, type;
 import exception;
+import builtin;
 
 debug import std.stdio;
 
@@ -40,13 +41,7 @@ Node eval(Node root) {
     Type.init();
     Env env = new Env();
 
-    // register built-in compile-time function
-    env.registerFunc(new Func("+", [Type.Int, Type.Int], Type.Int, function(Node[] args)
-    {
-	auto a = cast(IntNode)args[0];
-	auto b = cast(IntNode)args[1];
-	return new IntNode(a.tok, a.v+b.v);
-    }));
+    registerCompileTimeBuiltin(env);
 
     // evaluate program
     return eval(root, env);
