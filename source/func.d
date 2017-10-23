@@ -25,6 +25,6 @@ class Func {
 	    return Func.signature(name, argtypes);
 	}
 	static string signature(string name, Type[] types) {
-	    return "%s:%s".format(name, types.map!(to!string).join(","));
+	    return "%s(%s)".format(name, types.map!(to!string).join(","));
 	}
 }

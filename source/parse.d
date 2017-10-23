@@ -29,7 +29,7 @@ Node parseAddsub(Lexer lexer, Node left = null) {
     auto op = lexer.get;
     // binary +-
     if (op.type == Token.Type.SYM_ADD || op.type == Token.Type.SYM_SUB) {
-        auto right = parseAddsub(lexer);
+        auto right = lexer.parseNum();
         if (right is null) {
             throw new TopiException("expected right hand expr", op.loc);
         }
