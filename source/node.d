@@ -53,8 +53,57 @@ class FuncCallNode : Node {
 	    this.name = name;
 	    this.args = args;
 	}
+	// should not be called 
 	override Type type() { return Type.Void; }
 	override string toString() {
 	    return "(%s %s)".format(name, args.map!(to!string).join(" "));
+	}
+}
+
+// variable declaration
+class VarDeclNode : Node {
+    public:
+	string typename;
+	string varname;
+	this(Token tok, string typename, string varname) {
+	    super(tok);
+	    this.typename = typename;
+	    this.varname = varname;
+	}
+	override Type type() { return Type.Void; }
+	override string toString() {
+	    return "(%s %s)".format(typename, varname);
+	}
+}
+
+class VarDeclBlockNode : Node {
+    public:
+	VarDeclNode[] vardeclNodes;
+	this(Token tok, VarDeclNode[] vardeclNodes) {
+	    super(tok);
+	    this.vardeclNodes = vardeclNodes;
+	}
+	override Type type() { return Type.Void; }
+	override string toString() {
+	    return "[%s]".format(vardeclNodes.map!(to!string).join(" ").array);
+	}
+}
+
+class BlockNode : Node {
+    public:
+	VarDeclBlockNode vardeclblockNode;
+	Node[] nodes;
+	this(Token tok, VarDeclBlockNode vardeclblockNode, Node[] nodes) {
+	    super(tok);
+	    this.vardeclblockNode = vardeclblockNode;
+	    this.nodes = nodes;
+	}
+	override Type type() { return Type.Void; }
+	override string toString() {
+	    string declStr = "";
+	    if (vardeclblockNode !is null) { declStr = vardeclblockNode.to!string; }
+
+	    string nodesStr = "{%s}".format(nodes.map!(to!string).join(" ").array);
+	    return declStr ~ nodesStr;
 	}
 }

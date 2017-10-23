@@ -11,8 +11,10 @@ void main(string[] args)
     auto lexer = new Lexer(input);
 
     auto rootNode = lexer.parseTopLevel();
+    writeln("== AST ==");
     writeln(rootNode);
-    auto evaled = eval(rootNode);
 
+    writeln("== Compile Time Execution ==");
+    auto evaled = eval(rootNode);
     writeln(evaled);
 }
