@@ -2,12 +2,7 @@ import std.conv;
 import std.stdio;
 import std.range;
 
-struct Location {
-    public:
-        string fname = "";
-        uint line = 1;
-        uint column = 1;
-}
+import location;
 
 class Input {
     private:
@@ -19,11 +14,16 @@ class Input {
 	bool iseof = false;
         Location loc;
     public:
+	this() {
+	    this.loc = new Location();
+	}
         this(dstring str) {
+	    this();
             s = str;
             loc.fname = "-";
         }
         this(File f) {
+	    this();
             this.f = f;
             if (f is stdin) {
                 loc.fname = "-";

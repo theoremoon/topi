@@ -6,6 +6,7 @@ import std.format;
 import input;
 import token;
 import exception;
+import location;
 
 class Lexer {
     private:

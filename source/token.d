@@ -1,4 +1,5 @@
 import input;
+import location;
 
 
 class Token {
