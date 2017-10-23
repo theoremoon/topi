@@ -3,7 +3,7 @@ import std.stdio;
 import std.format;
 import std.outbuffer;
 
-import input, lex, token, parse;
+import input, lex, token, parse, evall;
 
 void main(string[] args)
 {
@@ -12,4 +12,7 @@ void main(string[] args)
 
     auto rootNode = lexer.parseTopLevel();
     writeln(rootNode);
+    auto evaled = eval(rootNode);
+
+    writeln(evaled);
 }

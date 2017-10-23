@@ -4,6 +4,10 @@ import std.algorithm;
 import std.format;
 
 import token;
+import type;
+import env;
+import func;
+import exception;
 
 abstract class Node {
     public:
@@ -11,6 +15,7 @@ abstract class Node {
 	this(Token tok) { 
 	    this.tok = tok;
 	}
+	abstract Type type();
 }
 class IntNode : Node {
     public:
@@ -19,6 +24,7 @@ class IntNode : Node {
 	    super(tok);
 	    this.v = v;
 	}
+	override Type type() { return Type.Int; }
 	override string toString() {
 	    return v.to!string;
 	}
@@ -30,6 +36,7 @@ class RealNode : Node {
 	    super(tok);
 	    this.v = v;
 	}
+	override Type type() { return Type.Real; }
 	override string toString() {
 	    return v.to!string;
 	}
@@ -43,6 +50,7 @@ class FuncCallNode : Node {
 	    this.name = name;
 	    this.args = args;
 	}
+	override Type type() { return Type.Void; }
 	override string toString() {
 	    return "(%s %s)".format(name, args.map!(to!string).join(" "));
 	}
