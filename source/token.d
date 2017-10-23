@@ -1,3 +1,6 @@
+import std.format;
+
+
 import input;
 import location;
 
@@ -41,4 +44,9 @@ class Token {
             this.pre_newline = pre_newline;
             return this;
         }
+
+	override string toString() {
+	    string s = "type:%s str:%s location:%s".format( type, str, loc);
+	    return s;
+	}
 }
