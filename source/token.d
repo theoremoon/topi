@@ -1,5 +1,9 @@
+import std.conv;
+import std.format;
+
 import input;
 import location;
+import srcchar;
 
 
 class Token {
@@ -31,14 +35,18 @@ class Token {
         bool pre_space = false;
         bool pre_newline = false;
 
-        this(Type type, string str, Location loc) {
+        this(Type type, SrcStr s) {
             this.type = type;
-            this.str = str;
-	    this.loc = loc;
+            this.str = s.str.to!string;
+	    this.loc = s.loc;
         }
         Token with_spaces(bool pre_space, bool pre_newline) {
             this.pre_space = pre_space;
             this.pre_newline = pre_newline;
             return this;
         }
+
+	override string toString() {
+	    return "(type:%s str:%s loc:%s)".format(type, str, loc);
+	}
 }

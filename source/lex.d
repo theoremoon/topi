@@ -7,6 +7,7 @@ import input;
 import token;
 import exception;
 import location;
+import srcchar;
 
 class Lexer {
     private:
@@ -28,9 +29,6 @@ class Lexer {
         }
         void unget(Token tok) {
             ungetbuf ~= tok;
-        }
-        Location loc() {
-            return input.location;
         }
         bool is_next_newline() {
             auto next = get;
@@ -64,7 +62,7 @@ bool[] skip_space(Input input) {
     bool newline = false;
 
     while (true) {
-        dchar c = input.get;
+        SrcChar c = input.get;
         if (c.isSpace) { space = true; }
         else if (c.isNewline) { newline = true; }
         else { 
@@ -76,7 +74,7 @@ bool[] skip_space(Input input) {
 }
 
 Token lexOne(Input input) {
-    auto space = skip_space(input);
+    bool[] space = skip_space(input);
 
     auto token = lex_symbol(input);
     if (token.type != Token.Type.UNKNOWN) { return token.with_spaces(space[0], space[1]); }
@@ -90,61 +88,59 @@ Token lexOne(Input input) {
 
 Token lex_real(Input input) {
     // before dot
-    dchar[] buf = [];
-    dchar c = input.get;
+    SrcStr buf = new SrcStr();
+    SrcChar c = input.get;
     if (! c.isDigit) {
-        throw new TopiException("Internal error", input.location);
+        throw new TopiException("Internal error", c.loc);
     }
     while (c.isDigit) {
-        buf ~= c;
+        buf.add(c);
         c = input.get;
     }
     if (c != '.') {
-        throw new TopiException("Internal error", input.location);
+        throw new TopiException("Internal error", buf.loc);
     }
     // after dot
-    dchar[] buf2 = [];
+    SrcStr buf2 = new SrcStr();
     c = input.get;
     while (c.isDigit) {
-        buf2 ~= c;
+        buf2.add(c);
         c = input.get;
-    }
-    // member function call
-    if (buf2.length == 0) {
-        input.unget('.');
-        input.unget(c);
-        return new Token(Token.Type.DIGIT, buf.to!string, input.location);
     }
     input.unget(c);
     // real value
-    return new Token(Token.Type.REAL, (buf ~ "." ~ buf2).to!string, input.location);
+    return new Token(Token.Type.REAL, buf.add(".").add(buf2));
 }
 
 Token lex_hex(Input input) {
-    if (input.get != '0') {
-        throw new TopiException("Internal error", input.location);
+    SrcStr buf = new SrcStr();
+    SrcChar c = input.get;
+    if (c != '0') {
+        throw new TopiException("Internal error", c.loc);
     }
-    if (input.get != 'x') {
-        throw new TopiException("Internal error", input.location);
+    buf.add(c);
+    c = input.get();
+    if (c != 'x') {
+        throw new TopiException("Internal error", buf.loc);
     }
-    dchar[] buf = [];
-    dchar c = input.get;
+
+    c = input.get;
     while (c.isHex) {
-        buf ~= c;
+        buf.add(c);
         c = input.get;
     }
     input.unget(c);
-    if (buf.length == 0) {
-        throw new TopiException("Invalid number 0x. hexadecimal number is expected.", input.location);
+    if (buf.str.length <= 2) {
+        throw new TopiException("Invalid number 0x. hexadecimal number is expected.", buf.loc);
     }
-    return new Token(Token.Type.HEX, buf.to!string, input.location);
+    return new Token(Token.Type.HEX, buf);
 }
 
 Token lex_number(Input input) {
-    dchar c = input.get;
+    SrcChar c = input.get;
     // 0-prefixed number
     if (c == '0') {
-        dchar c2 = input.get;
+        SrcChar c2 = input.get;
         // hex
         if (c2 == 'x') {
             input.unget(c2);
@@ -158,11 +154,11 @@ Token lex_number(Input input) {
 
             return lex_real(input);
         }
-        throw new TopiException("Unknown prefix 0%c".format(c2), input.location);
+        throw new TopiException("Unknown prefix 0%c".format(c2), c.loc);
     }
     // digit
     else if (c.isDigit) {
-        dchar[] buf = [];
+	SrcChar[] buf;
         while (c.isDigit) {
             buf ~= c;
             c = input.get;
@@ -176,55 +172,55 @@ Token lex_number(Input input) {
             return lex_real(input);
         }
         // digit
-        return new Token(Token.Type.DIGIT, buf.to!string, input.location);
+        return new Token(Token.Type.DIGIT, new SrcStr(buf));
     }
     // not a number
     input.unget(c);
-    return new Token(Token.Type.UNKNOWN, c.to!string, input.location);
+    return new Token(Token.Type.UNKNOWN, new SrcStr([c]));
 }
 
 Token lex_symbol(Input input) {
-    dchar c = input.get;
+    SrcChar c = input.get;
 
     switch (c) {
         case '+':
-            return new Token(Token.Type.SYM_ADD, "+", input.location);
+            return new Token(Token.Type.SYM_ADD, new SrcStr([c]));
         case '-':
-            return new Token(Token.Type.SYM_SUB, "-", input.location);
+            return new Token(Token.Type.SYM_SUB, new SrcStr([c]));
         case '*':
-            return new Token(Token.Type.OP_MUL, "*", input.location);
+            return new Token(Token.Type.OP_MUL,  new SrcStr([c]));
         case '/':
-            return new Token(Token.Type.SYM_SLASH, "/", input.location);
+            return new Token(Token.Type.SYM_SLASH, new SrcStr([c]));
         case '=':
-            return new Token(Token.Type.OP_ASSIGN, "=", input.location);
+            return new Token(Token.Type.OP_ASSIGN, new SrcStr([c]));
         case ',':
-            return new Token(Token.Type.COMMA, ",", input.location);
+            return new Token(Token.Type.COMMA, new SrcStr([c]));
         case '(':
-            return new Token(Token.Type.OPEN_PAREN, "(", input.location);
+            return new Token(Token.Type.OPEN_PAREN, new SrcStr([c]));
         case ')':
-            return new Token(Token.Type.CLOSE_PAREN, ")", input.location);
+            return new Token(Token.Type.CLOSE_PAREN, new SrcStr([c]));
         case '{':
-            return new Token(Token.Type.OPEN_MUSTACHE, "{", input.location);
+            return new Token(Token.Type.OPEN_MUSTACHE, new SrcStr([c]));
         case '}':
-            return new Token(Token.Type.CLOSE_MUSTACHE, "}", input.location);
+            return new Token(Token.Type.CLOSE_MUSTACHE, new SrcStr([c]));
         case '[':
-            return new Token(Token.Type.OPEN_BRACKET, "[", input.location);
+            return new Token(Token.Type.OPEN_BRACKET, new SrcStr([c]));
         case ']':
-            return new Token(Token.Type.CLOSE_BRACKET, "]", input.location);
+            return new Token(Token.Type.CLOSE_BRACKET, new SrcStr([c]));
         default:
             break;
     }
     input.unget(c);
-    return new Token(Token.Type.UNKNOWN, c.to!string, input.location);
+    return new Token(Token.Type.UNKNOWN, new SrcStr([c]));
 }
 
 Token lex_identifier(Input input) {
-    dchar c = input.get;
+    SrcChar c = input.get;
     if (! c.isFirstChar) {
         input.unget(c);
-        return new Token(Token.Type.UNKNOWN, c.to!string, input.location);
+        return new Token(Token.Type.UNKNOWN, new SrcStr([c]));
     }
-    dchar[] buf = [];
+    SrcChar[] buf = [];
     while (c.isIdentChar) {
         buf ~= c;
         c = input.get;
@@ -232,8 +228,8 @@ Token lex_identifier(Input input) {
     input.unget(c);
 
     if (buf == "Int" || buf == "Real" || buf == "Void") {
-        return new Token(Token.Type.KEYWORD, buf.to!string, input.location);
+        return new Token(Token.Type.KEYWORD, new SrcStr(buf));
     }
 
-    return new Token(Token.Type.IDENT, buf.to!string, input.location);
+    return new Token(Token.Type.IDENT, new SrcStr(buf));
 }
