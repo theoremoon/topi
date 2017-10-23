@@ -54,11 +54,6 @@ Node eval(Node node, Env env) {
 
     // funciton call
     if (auto funcCallNode = cast(FuncCallNode)node) {
-	Node[] args = [];
-	foreach (arg; funcCallNode.args) {
-	    args ~= eval(arg, env);
-	}
-
 	// call function
 	return call(funcCallNode, env);
     }

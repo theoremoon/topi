@@ -18,18 +18,18 @@ Node parseNum(Lexer lexer) {
     return null;
 }
 
-Node parseAddsub(Lexer lexer, Node left = null) {
+// parse for a*b or a/b
+Node parseMuldiv(Lexer lexer, Node left = null) {
     if (left is null) {
         left = lexer.parseNum();
         if (left is null) {
             return null;
         }
     }
-
-    auto op = lexer.get;
-    // binary +-
-    if (op.type == Token.Type.SYM_ADD || op.type == Token.Type.SYM_SUB) {
-        auto right = lexer.parseNum();
+    auto op = lexer.get();
+    // binary * /
+    if (op.type == Token.Type.OP_MUL || op.type == Token.Type.SYM_SLASH) {
+        auto right = lexer.parseMuldiv();
         if (right is null) {
             throw new TopiException("expected right hand expr", op.loc);
         }
@@ -38,6 +38,32 @@ Node parseAddsub(Lexer lexer, Node left = null) {
     // otherwise
     lexer.unget(op);
     return left;
+}
+
+Node parseAddsub(Lexer lexer, Node left = null) {
+    if (left is null) {
+        left = lexer.parseMuldiv();
+        if (left is null) {
+            return null;
+        }
+    }
+
+    auto op = lexer.get;
+    // binary +-
+    if (op.type == Token.Type.SYM_ADD || op.type == Token.Type.SYM_SUB) {
+        auto right = lexer.parseMuldiv();
+        if (right is null) {
+            throw new TopiException("expected right hand expr", op.loc);
+        }
+        return lexer.parseAddsub(new FuncCallNode(op, op.str, [left, right]));
+    }
+    // otherwise
+    lexer.unget(op);
+    return left;
+}
+
+Node parseExpr(Lexer lexer) {
+    return lexer.parseAddsub();
 }
 
 Node parseTopLevel(Lexer lexer) {

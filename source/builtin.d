@@ -28,4 +28,10 @@ void registerCompileTimeBuiltin(Env env)
 	return new RealNode(a.tok, a.v+b.v);
     }));
 
+    env.registerFunc(new Func("*", [Type.Int, Type.Int], Type.Int, function(Node[] args)
+    {
+	auto a = cast(IntNode)args[0];
+	auto b = cast(IntNode)args[1];
+	return new IntNode(a.tok, a.v*b.v);
+    }));
 }
