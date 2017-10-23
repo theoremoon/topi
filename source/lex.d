@@ -17,14 +17,6 @@ class Lexer {
             this.input = input;
         }
 
-	Token[] getAll() {
-	    Token[] tokens = [];
-	    while (!input.end) {
-		tokens ~= this.get();
-	    }
-	    return tokens;
-	}
-
         Token get() {
             if (ungetbuf.length > 0) {
                 Token tok = ungetbuf.back;
@@ -72,13 +64,13 @@ bool[] skip_space(Input input) {
     bool newline = false;
 
     while (true) {
-        dchar c = input.peek();
+        dchar c = input.get;
         if (c.isSpace) { space = true; }
         else if (c.isNewline) { newline = true; }
         else { 
+            input.unget(c);
             break; 
         }
-	input.consume();
     }
     return [space, newline];
 }
@@ -96,31 +88,52 @@ Token lexOne(Input input) {
     return token.with_spaces(space[0], space[1]) ;
 }
 
-// lexer read number 123.45 like
-Token lex_real(Input input, dchar[] buf) {
-    // until dot is already read
-    // read after dot
+Token lex_real(Input input) {
+    // before dot
+    dchar[] buf = [];
+    dchar c = input.get;
+    if (! c.isDigit) {
+        throw new TopiException("Internal error", input.location);
+    }
+    while (c.isDigit) {
+        buf ~= c;
+        c = input.get;
+    }
+    if (c != '.') {
+        throw new TopiException("Internal error", input.location);
+    }
+    // after dot
     dchar[] buf2 = [];
-    dchar c = input.peek();
+    c = input.get;
     while (c.isDigit) {
         buf2 ~= c;
-	input.consume();
-        c = input.peek();
+        c = input.get;
     }
+    // member function call
+    if (buf2.length == 0) {
+        input.unget('.');
+        input.unget(c);
+        return new Token(Token.Type.DIGIT, buf.to!string, input.location);
+    }
+    input.unget(c);
     // real value
     return new Token(Token.Type.REAL, (buf ~ "." ~ buf2).to!string, input.location);
 }
 
 Token lex_hex(Input input) {
-    // 0x is already read
-
+    if (input.get != '0') {
+        throw new TopiException("Internal error", input.location);
+    }
+    if (input.get != 'x') {
+        throw new TopiException("Internal error", input.location);
+    }
     dchar[] buf = [];
-    dchar c = input.peek();
+    dchar c = input.get;
     while (c.isHex) {
         buf ~= c;
-	input.consume();
-        c = input.peek();
+        c = input.get;
     }
+    input.unget(c);
     if (buf.length == 0) {
         throw new TopiException("Invalid number 0x. hexadecimal number is expected.", input.location);
     }
@@ -128,20 +141,22 @@ Token lex_hex(Input input) {
 }
 
 Token lex_number(Input input) {
-    dchar c = input.peek();
-    // may be 0-prefixed number
+    dchar c = input.get;
+    // 0-prefixed number
     if (c == '0') {
-	input.consume();
-        dchar c2 = input.peek();
+        dchar c2 = input.get;
         // hex
         if (c2 == 'x') {
-	    input.consume();
+            input.unget(c2);
+            input.unget(c);
             return lex_hex(input);
         }
         // float
         if (c2 == '.') {
-	    input.consume();
-            return lex_real(input, "0x".to!dstring.dup);
+            input.unget(c2);
+            input.unget(c);
+
+            return lex_real(input);
         }
         throw new TopiException("Unknown prefix 0%c".format(c2), input.location);
     }
@@ -150,79 +165,71 @@ Token lex_number(Input input) {
         dchar[] buf = [];
         while (c.isDigit) {
             buf ~= c;
-	    input.consume();
-            c = input.peek();
+            c = input.get;
         }
+        input.unget(c);
         // float
         if (c == '.') {
-	    buf ~= c;
-            return lex_real(input, buf);
+            foreach_reverse (r; buf) {
+                input.unget(r);
+            }
+            return lex_real(input);
         }
         // digit
         return new Token(Token.Type.DIGIT, buf.to!string, input.location);
     }
-
     // not a number
+    input.unget(c);
     return new Token(Token.Type.UNKNOWN, c.to!string, input.location);
 }
 
 Token lex_symbol(Input input) {
-    dchar c = input.peek();
+    dchar c = input.get;
 
     switch (c) {
         case '+':
-	    input.consume();
             return new Token(Token.Type.SYM_ADD, "+", input.location);
         case '-':
-	    input.consume();
             return new Token(Token.Type.SYM_SUB, "-", input.location);
         case '*':
-	    input.consume();
             return new Token(Token.Type.OP_MUL, "*", input.location);
         case '/':
-	    input.consume();
             return new Token(Token.Type.SYM_SLASH, "/", input.location);
         case '=':
-	    input.consume();
             return new Token(Token.Type.OP_ASSIGN, "=", input.location);
         case ',':
-	    input.consume();
             return new Token(Token.Type.COMMA, ",", input.location);
         case '(':
-	    input.consume();
             return new Token(Token.Type.OPEN_PAREN, "(", input.location);
         case ')':
-	    input.consume();
             return new Token(Token.Type.CLOSE_PAREN, ")", input.location);
         case '{':
-	    input.consume();
             return new Token(Token.Type.OPEN_MUSTACHE, "{", input.location);
         case '}':
-	    input.consume();
             return new Token(Token.Type.CLOSE_MUSTACHE, "}", input.location);
         case '[':
-	    input.consume();
             return new Token(Token.Type.OPEN_BRACKET, "[", input.location);
         case ']':
-	    input.consume();
             return new Token(Token.Type.CLOSE_BRACKET, "]", input.location);
         default:
             break;
     }
+    input.unget(c);
     return new Token(Token.Type.UNKNOWN, c.to!string, input.location);
 }
 
 Token lex_identifier(Input input) {
-    dchar c = input.peek();
+    dchar c = input.get;
     if (! c.isFirstChar) {
+        input.unget(c);
         return new Token(Token.Type.UNKNOWN, c.to!string, input.location);
     }
     dchar[] buf = [];
     while (c.isIdentChar) {
         buf ~= c;
-	input.consume();
-        c = input.peek();
+        c = input.get;
     }
+    input.unget(c);
 
     if (buf == "Int" || buf == "Real" || buf == "Void") {
         return new Token(Token.Type.KEYWORD, buf.to!string, input.location);

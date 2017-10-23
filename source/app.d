@@ -9,10 +9,4 @@ void main(string[] args)
 {
     Input input = new Input(stdin);
     auto lexer = new Lexer(input);
-
-    auto tokens = lexer.getAll();
-
-    foreach (token; tokens) {
-	writeln(token);
-    }
 }
