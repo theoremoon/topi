@@ -54,9 +54,23 @@ Node eval(Node node, Env env) {
 
     // funciton call
     if (auto funcCallNode = cast(FuncCallNode)node) {
-	// call function
-	return call(funcCallNode, env);
+		// call function
+		return call(funcCallNode, env);
     }
+
+	// block node
+	if (auto blockNode = cast(BlockNode)node) {
+		// TODO: variable decl
+
+		// evaluating each exprs
+		Node[] newNodes = [];
+		foreach (n; blockNode.nodes) {
+			newNodes ~= eval(n, env);
+		}
+
+		// replace old nodes to new nodes
+		blockNode.nodes = newNodes;
+	}
 
     // as-is node
     return node;
