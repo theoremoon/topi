@@ -40,6 +40,9 @@ Node eval(Node root) {
     // initialize type and environment
     Type.init();
     Env env = new Env();
+	env.registerType(Type.Int);
+	env.registerType(Type.Real);
+	env.registerType(Type.Void);
 
     registerCompileTimeBuiltin(env);
 
@@ -47,6 +50,25 @@ Node eval(Node root) {
     return eval(root, env);
 }
 
+
+// evaulate variable declaration
+void evalDecl(VarDeclBlockNode node, Env env)
+{
+	if (node is null) { return; }
+
+	foreach (vardeclNode; node.vardeclNodes) {
+		// get type from string
+		auto t = env.getType(vardeclNode.typename);
+
+		// unknown type
+		if (t is null) {
+			throw new TopiException("unknown type " ~ vardeclNode.typename, vardeclNode.tok.loc);
+		}
+		
+		// registration
+		env.registerVar(vardeclNode.varname, t.defaultValue());
+	}
+}
 
 // evaluate node
 Node eval(Node node, Env env) {
@@ -60,7 +82,8 @@ Node eval(Node node, Env env) {
 
 	// block node
 	if (auto blockNode = cast(BlockNode)node) {
-		// TODO: variable decl
+		// variable declaration
+		evalDecl(blockNode.vardeclblockNode, env);
 
 		// evaluating each exprs
 		Node[] newNodes = [];

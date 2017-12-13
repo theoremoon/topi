@@ -18,6 +18,16 @@ abstract class Node {
 	}
 	abstract Type type();
 }
+class NilNode : Node {
+public:
+	this(Token tok) {
+		super(tok);
+	}
+	override Type type() { return Type.Void; }
+	override string toString() {
+	    return "nil";
+	}
+}
 class IntNode : Node {
     public:
 	long v;
