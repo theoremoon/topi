@@ -5,11 +5,12 @@ import std.algorithm;
 
 import node;
 import type;
+import env;
 
 
 class Func {
     public:
-	alias ProcT = Node function(Node[] args);
+	alias ProcT = Node function(Env env, Node[] args);
 	string name;
 	Type[] argtypes;
 	Type rettype;

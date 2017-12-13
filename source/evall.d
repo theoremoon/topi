@@ -32,7 +32,7 @@ Node call(FuncCallNode funcCallNode, Env env) {
     }
 
     // execute
-    return f.proc(args);
+    return f.proc(env, args);
 }
 
 // entry point of compile time evaluation 
