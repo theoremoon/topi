@@ -93,13 +93,14 @@ Node eval(Node node, Env env) {
 
 	// block node
 	if (auto blockNode = cast(BlockNode)node) {
+		Env newEnv = new Env(env);
 		// variable declaration
-		evalDecl(blockNode.vardeclblockNode, env);
+		evalDecl(blockNode.vardeclblockNode, newEnv);
 
 		// evaluating each exprs
 		Node[] newNodes = [];
 		foreach (n; blockNode.nodes) {
-			newNodes ~= eval(n, env);
+			newNodes ~= eval(n, newEnv);
 		}
 
 		// replace old nodes to new nodes

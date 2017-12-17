@@ -16,7 +16,7 @@ public:
 	}
 	bool registerFunc(Func func) {
 		if (func.signature in funcs) {
-			return false;
+			throw new Exception("the function %s is already defined in this scope".format(func.signature));
 		}
 		funcs[func.signature] = func;
 		return true;
@@ -25,12 +25,15 @@ public:
 		if (signature in funcs) {
 			return funcs[signature];
 		}
-		return null;
+		if (par is null) {
+			return null;
+		}
+		return par.getFunc(signature);
 	}
 
 	bool registerType(Type type) {
 		if (type.toString() in types) {
-			return false;
+			throw new Exception("the type %s is already defined in this scope".format(type.toString()));
 		}
 		types[type.toString()] = type;
 		return true;
@@ -39,26 +42,36 @@ public:
 		if (name in types) {
 			return types[name];
 		}
-		return null;
+		if (par is null) {
+			return null;
+		}
+		return par.getType(name);
 	}
 
 	bool registerVar(string name, Node node) {
 		if (name in vars) {
-			return false;
+			throw new Exception("the variable %s is already defined in this scope".format(name));
 		}
 		vars[name] = node;
 		return true;
 	}
 	void setVar(string name, Node node) {
-		if (name !in vars) {
-			throw new Exception("variable %s is not exist in env".format(name));
+		if (name in vars) {
+			vars[name] = node;
+			return;
 		}
-		vars[name] = node;
+		if (par is null) {
+			throw new Exception("the variable %s is not defined".format(name));
+		}
+		setVar(name, node);
 	}
 	Node getVar(string name) {
 		if (name in vars) {
 			return vars[name];
 		}
-		return null;
+		if (par is null) {
+			throw new Exception("the variable %s isnot defined".format(name));
+		}
+		return par.getVar(name);
 	}
 }
