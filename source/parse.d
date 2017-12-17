@@ -1,81 +1,48 @@
 import std.conv;
 
-import node;
-import token;
-import lex;
+import node, lex, token;
 import exception;
 
 Node parseNum(Lexer lexer) {
-    auto tok = lexer.get;
-
-    if (tok.type == Token.Type.REAL) {
-        return new RealNode(tok, tok.str.to!double);
+    auto num = lexer.get();
+    if (num.type == Token.Type.DIGIT) {
+	return new IntNode(num, num.str.to!long);
     }
-    if (tok.type == Token.Type.DIGIT) {
-        return new IntNode(tok, tok.str.to!long(10));
+    if (num.type == Token.Type.HEX) {
+	return new IntNode(num, num.str.to!long(16));
     }
-    if (tok.type == Token.Type.HEX) {
-        return new IntNode(tok, tok.str.to!long(16));
+    if (num.type == Token.Type.REAL) {
+	return new RealNode(num, num.str.to!double);
     }
-    lexer.unget(tok);
+    lexer.unget(num);
     return null;
 }
 
-Node parseFactor(Lexer lexer) {
-    auto tok = lexer.get;
-    // identifier
-    if (tok.type == Token.Type.IDENT) {
-        return new SymbolNode(tok);
-    }
-    lexer.unget(tok);
-    return lexer.parseNum;
-}
-
-Node[] parseFuncArgs(Lexer lexer) {
-    auto open = lexer.get;
-    if (open.type != Token.Type.OPEN_PAREN) {
-        lexer.unget(open);
-        return null;
-    }
-    Node[] exprs = [];
-    while (true) {
-        auto expr = lexer.parseExpr;
-        if (expr is null) { break; }
-        exprs ~= expr;
-        auto comma = lexer.get;
-        if (comma.type != Token.Type.COMMA) {
-            lexer.unget(comma);
-            break;
+// parse for a*b or a/b
+Node parseMuldiv(Lexer lexer, Node left = null) {
+    if (left is null) {
+        left = lexer.parseNum();
+        if (left is null) {
+            return null;
         }
     }
-    auto close = lexer.get;
-    if (close.type != Token.Type.CLOSE_PAREN) {
-        throw new TopiException("CLOSE PARENTHES ) is required", close.loc);
+    auto op = lexer.get();
+    // binary * /
+    if (op.type == Token.Type.OP_MUL || op.type == Token.Type.SYM_SLASH) {
+        auto right = lexer.parseMuldiv();
+        if (right is null) {
+            throw new TopiException("expected right hand expr", op.loc);
+        }
+        return lexer.parseAddsub(new FuncCallNode(op, op.str, [left, right]));
     }
-    return exprs;
-}
-
-Node parseCall(Lexer lexer) {
-    auto func = lexer.parseFactor;
-    if (func is null) { return null; }
-
-    auto open = lexer.get;
-    lexer.unget(open);
-    if (open.type != Token.Type.OPEN_PAREN) {
-        return func;
-    }
-
-    auto args = lexer.parseFuncArgs;
-    if (args is null) {
-        throw new TopiException("function call syntax is expected", open.loc);
-    }
-
-    return new CTFuncCallNode(func, args);
+    // otherwise
+    lexer.unget(op);
+    return left;
 }
 
 Node parseAddsub(Lexer lexer, Node left = null) {
     if (left is null) {
-        left = lexer.parseCall;
+        left = lexer.parseMuldiv();
         if (left is null) {
             return null;
         }
@@ -84,203 +51,117 @@ Node parseAddsub(Lexer lexer, Node left = null) {
     auto op = lexer.get;
     // binary +-
     if (op.type == Token.Type.SYM_ADD || op.type == Token.Type.SYM_SUB) {
-        auto right = lexer.parseCall;
+        auto right = lexer.parseMuldiv();
         if (right is null) {
-            throw new TopiException("expected right hand expr", lexer.loc);
+            throw new TopiException("expected right hand expr", op.loc);
         }
-        return lexer.parseAddsub(CTFuncCallNode.fromToken(op, [left, right]));
+        return lexer.parseAddsub(new FuncCallNode(op, op.str, [left, right]));
     }
     // otherwise
     lexer.unget(op);
     return left;
 }
 
-CTDeclBlock parseDecl(Lexer lexer) {
-    auto type = lexer.get;
-    if (type.type != Token.Type.KEYWORD) { 
-        lexer.unget(type);
-        return null;
+// parse variable declaration
+VarDeclNode parseDecl(Lexer lexer) {
+    auto type = lexer.get();
+    // keyword such as Int, Real
+    if (type.type != Token.Type.KEYWORD) {
+	lexer.unget(type);
+	return null;
     }
 
-    CTDeclNode[] decls = [];
-    while (true) {
-        auto name = lexer.get;
-        if (name.type != Token.Type.IDENT) {
-            throw new TopiException("expected variable name", name.loc);
-        }
-        decls ~= new CTDeclNode(type, name);
-
-        auto comma = lexer.get;
-        if (comma.type != Token.Type.COMMA) {
-            lexer.unget(comma);
-            break;
-        }
+    // read variable name
+    auto name = lexer.get();
+    if (name.type != Token.Type.IDENT) {
+	throw new TopiException("variable name expected", name.loc);
     }
 
-    return new CTDeclBlock(decls);
+    return new VarDeclNode(type, type.str, name.str);
 }
 
-CTDeclBlock parseDeclBlock(Lexer lexer) {
-    auto open = lexer.get;
+// variable declaration block likes [Int a\n Int b\n Real c]
+VarDeclBlockNode parseDeclBlock(Lexer lexer) {
+    // open bracket [
+    auto open = lexer.get();
     if (open.type != Token.Type.OPEN_BRACKET) {
         lexer.unget(open);
         return null;
     }
 
-    CTDeclBlock[] decls;
+    // variable declarations which separated by \n
+    VarDeclNode[] declNodes;
     while (true) {
-        auto decls2 = lexer.parseDecl;
-        if (decls2 is null) { break; }
-        decls ~= decls2;
+        auto declNode = lexer.parseDecl();
+        if (declNode is null) { break; }
+	declNodes ~= declNode;
 
         if (!lexer.is_next_newline) { break; }
     }
 
-    auto close = lexer.get;
+    // close bracket ]
+    auto close = lexer.get();
     if (close.type != Token.Type.CLOSE_BRACKET) {
         throw new TopiException("expected ]", close.loc);
     }
-    return new CTDeclBlock(decls);
+
+    return new VarDeclBlockNode(open, declNodes);
 }
 
-Node parseBlock(Lexer lexer) {
-    CTDeclBlock declBlock = null;
-    auto open = lexer.get;
+// block is { ... } or []{ ... }
+BlockNode parseBlock(Lexer lexer) {
+    // { or [
+    VarDeclBlockNode vardeclblockNode = null;
+    auto open = lexer.get();
 
+    // [ ... ]
     if (open.type == Token.Type.OPEN_BRACKET) {
-        lexer.unget(open);
-        declBlock = lexer.parseDeclBlock;
-        if (declBlock is null) {
-            throw new TopiException("Variable Declaration is required", open.loc);
-        }
-        open = lexer.get; // will be {
-        if (open.type != Token.Type.OPEN_MUSTACHE) {
-            throw new TopiException("Block { is required", open.loc);
-        }
+	lexer.unget(open);
+	vardeclblockNode = lexer.parseDeclBlock();
+	
+	open = lexer.get();
     }
 
+    // not a block or error
     if (open.type != Token.Type.OPEN_MUSTACHE) {
-        lexer.unget(open);
-        return null;
+	if (vardeclblockNode is null) { 
+	    lexer.unget(open);
+	    return null;
+	}
+	throw new TopiException("{ is expected after [...]", open.loc);
     }
 
+    // { ... }
     Node[] nodes = [];
     while (true) {
-        auto node = lexer.parseToplevel;
-        if (node is null) { break; }
-        nodes ~= node;
-
-        if (!lexer.is_next_newline) { break; }
+	auto node = lexer.parseTopLevel();
+	if (node is null) { break; }
+	nodes ~= node;
+	if (!lexer.is_next_newline) { break; }
     }
 
-    auto close = lexer.get;
+    // }
+    auto close = lexer.get();
     if (close.type != Token.Type.CLOSE_MUSTACHE) {
-        throw new TopiException("expected }", close.loc);
+	throw new TopiException("} is expected", close.loc);
     }
-    return new CTBlockNode(nodes, declBlock);
+
+    return new BlockNode(open, vardeclblockNode, nodes);
 }
 
 Node parseExpr(Lexer lexer) {
-    // auto node = lexer.parseAssign;
-    // if (node !is null) { return node; }
-    auto node = lexer.parseAddsub;
+    return lexer.parseAddsub();
+}
+
+Node parseTopLevel(Lexer lexer) {
+    Node node = null;
+
+    node = lexer.parseExpr();
     if (node !is null) { return node; }
-    return null;
-}
 
-Node parseToplevel(Lexer lexer) {
-    auto node = lexer.parseBlock;
+    node = lexer.parseBlock();
     if (node !is null) { return node; }
-    return lexer.parseExpr;
+
+    return node;
 }
 
-// 
-// 
-// 
-// Node parseAssign(Lexer lexer) {
-//     auto left = lexer.parseAddsub;
-//     if (left is null) { return null; }
-//     if (!left.is_lvalue) { return left; }
-// 
-//     auto op = lexer.get;
-//     if (op.type != Token.Type.OP_ASSIGN) {
-//         lexer.unget(op);
-//         return left;
-//     }
-// 
-//     auto right = lexer.parseAssign;
-//     if (right is null) {
-//         throw new TopiException("expected right hand expr", lexer.loc);
-//     }
-//     return new FuncCall(op.str, [left, right]);
-// }
-// 
-// 
-// 
-/+
-
-CTNode parseFactor(Lexer lexer) {
-    auto tok = lexer.get;
-    // unary +
-    if (tok.type == Token.Type.SYM_ADD) {
-        return lexer.parseFactor;
-    }
-    // unary -
-    if (tok.type == Token.Type.SYM_SUB) {
-        return ct_funccall("-", [lexer.parseFactor]);
-    }
-    // identifier
-    if (tok.type == Token.Type.IDENT) {
-        auto paren = lexer.get;
-        // func call
-        if (paren.type == Token.Type.OPEN_PAREN) {
-            lexer.unget(paren);
-            lexer.unget(tok);
-
-            auto call = parseFuncCall(lexer);
-            if (call is null) {
-                throw new TopiException("function call syntax is expected", lexer.loc);
-            }
-            return call;
-        }
-        lexer.unget(paren);
-        return new CTSymbol(tok.str);
-    }
-    // (expr)
-    if (tok.type == Token.Type.OPEN_PAREN) {
-        auto expr = lexer.parseExpr;
-        if (expr is null) {
-            throw new TopiException("expression is required for (expr)", lexer.loc);
-        }
-        auto close = lexer.get;
-        if (close.type != Token.Type.CLOSE_PAREN) {
-            throw new TopiException("close paren is required", lexer.loc);
-        }
-        return expr;
-    }
-    lexer.unget(tok);
-    return lexer.parseNum;
-}
-
-CTNode parseTerm(Lexer lexer, CTNode left = null) {
-    if (left is null) {
-        left = lexer.parseFactor;
-        if (left is null) { return null; }
-    }
-
-    auto op = lexer.get;
-    // binary * or /
-    if (op.type == Token.Type.OP_MUL || op.type == Token.Type.SYM_SLASH) {
-        auto right = lexer.parseFactor;
-        if (right is null) {
-            throw new TopiException("expected right hand expr", lexer.loc);
-        }
-        return parseTerm(lexer, ct_funccall(op.str, [left, right]));
-    }
-    // otherwise
-    lexer.unget(op);
-    return left;
-}
-
-
-+/

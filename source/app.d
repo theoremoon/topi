@@ -3,20 +3,18 @@ import std.stdio;
 import std.format;
 import std.outbuffer;
 
-import type, input, lex, parse, node;
+import input, lex, token, parse, evall;
 
 void main(string[] args)
 {
-    Type.init();
-    
     Input input = new Input(stdin);
     auto lexer = new Lexer(input);
-    auto node = parseToplevel(lexer);
-    auto evaled = node.eval;
 
-    writeln("== ast ==");
-    writeln(node);
+    auto rootNode = lexer.parseTopLevel();
+    writeln("== AST ==");
+    writeln(rootNode);
 
-    writeln("== evaled ==");
+    writeln("== Compile Time Execution ==");
+    auto evaled = eval(rootNode);
     writeln(evaled);
 }

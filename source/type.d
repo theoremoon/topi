@@ -1,38 +1,39 @@
-import std.conv;
+import node;
+import token;
 
 class Type {
-    public:
-	string typestr;
-	bool islvalue = false;
+private:
+	this() {
+	    name = "";
+		defaultExpr = null;
+	};
+public:
+	alias defaultT = Node function();
+	string name;
+	defaultT defaultExpr;
 
-	// primitives
 	static Type Int;
 	static Type Real;
 	static Type Void;
-
+	
+	static Type primitive(string name, defaultT defaultExpr) {
+	    Type t = new Type();
+	    t.name = name;
+		t.defaultExpr = defaultExpr;
+	    return t;
+	}
 	static void init() {
-	    Void = new Type();
-	    Void.typestr = "Void";
-	    Int = new Type();
-	    Int.typestr = "Int";
-	    Real = new Type();
-	    Real.typestr = "Real";
+	    Int = primitive("Int", () => new IntNode(Token.Dummy(), cast(long)0));
+	    Real = primitive("Real", () => new RealNode(Token.Dummy(), 0.0));
+	    Void = primitive("Void", () => new NilNode(Token.Dummy()));
 	}
 
+	Node defaultValue() {
+		return defaultExpr();
+	}
+	
 	override string toString() {
-	    return typestr;
-	}
-
-	// ignoring islvalue
-	bool same_signature(Type t) {
-	    if (this.typestr != t.typestr) { return false; }
-	    return true;
-	}
-
-	// allow t as rvalue even if t is lvalue
-	bool same_rvalue(Type t) {
-	    if (!same_signature(t)) { return false; }
-	    if (!t.islvalue && islvalue) { return false; }
-	    return true;
+	    string s = name;
+	    return s;
 	}
 }

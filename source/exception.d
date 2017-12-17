@@ -1,5 +1,6 @@
 import std.format;
 import input;
+import location;
 
 class TopiException : Exception {
     public:
