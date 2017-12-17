@@ -11,6 +11,17 @@ debug import std.stdio;
 
 // call function
 Node call(FuncCallNode funcCallNode, Env env) {
+	// 代入は特別扱い……
+	if (funcCallNode.name == "=") {
+		if (funcCallNode.args.length != 2) {
+			throw new TopiException("argument-number of assignment operator should be 2", funcCallNode.tok.loc);
+		}
+		auto arg = eval(funcCallNode.args[1], env);
+		funcCallNode.args[0].setValue(env, arg);
+		return arg;
+	}
+
+
 	// evaluate arguments
 	Node[] args = [];
 	foreach (arg; funcCallNode.args) {
@@ -70,7 +81,7 @@ void evalDecl(VarDeclBlockNode node, Env env)
 	}
 }
 
-// evaluate node
+// evaluate node as Rvalue
 Node eval(Node node, Env env) {
 	debug writeln("evaluating:", node);
 
@@ -93,8 +104,10 @@ Node eval(Node node, Env env) {
 
 		// replace old nodes to new nodes
 		blockNode.nodes = newNodes;
+
+		return blockNode;
 	}
 
 	// as-is node
-	return node;
+	return node.asRvalue(env);
 }

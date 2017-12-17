@@ -3,14 +3,21 @@ import token;
 
 class Type {
 private:
-	this() {
+	this() @safe pure {
 	    name = "";
 		defaultExpr = null;
+		isvar = false;
 	};
+	this(const Type t) @safe pure {
+		this.name = t.name;
+		this.defaultExpr = t.defaultExpr;
+		this.isvar = t.isvar;
+	}
 public:
 	alias defaultT = Node function();
 	string name;
 	defaultT defaultExpr;
+	bool isvar;
 
 	static Type Int;
 	static Type Real;
@@ -31,9 +38,18 @@ public:
 	Node defaultValue() {
 		return defaultExpr();
 	}
+
+	Type varType() {
+		Type t = new Type(this);
+		t.isvar = true;
+		return t;
+	}
 	
 	override string toString() {
 	    string s = name;
+		if (this.isvar) {
+			return "&"~s;
+		}
 	    return s;
 	}
 }

@@ -2,6 +2,8 @@ import func;
 import type;
 import node;
 
+import std.format;
+
 class Env {
 public:
 	Env par;
@@ -46,6 +48,12 @@ public:
 		}
 		vars[name] = node;
 		return true;
+	}
+	void setVar(string name, Node node) {
+		if (name !in vars) {
+			throw new Exception("variable %s is not exist in env".format(name));
+		}
+		vars[name] = node;
 	}
 	Node getVar(string name) {
 		if (name in vars) {

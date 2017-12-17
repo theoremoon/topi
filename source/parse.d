@@ -18,11 +18,20 @@ Node parseNum(Lexer lexer) {
 	return null;
 }
 
+Node parseSymbol(Lexer lexer) {
+	auto symbol = lexer.get();
+	if (symbol.type == Token.Type.IDENT) {
+		return new SymbolNode(symbol, symbol.str);
+	}
+	lexer.unget(symbol);
+	return lexer.parseNum();
+}
+
 
 // parse for a*b or a/b
 Node parseMuldiv(Lexer lexer, Node left = null) {
 	if (left is null) {
-		left = lexer.parseNum();
+		left = lexer.parseSymbol();
 		if (left is null) {
 			return null;
 		}
@@ -61,6 +70,19 @@ Node parseAddsub(Lexer lexer, Node left = null) {
 	// otherwise
 	lexer.unget(op);
 	return left;
+}
+
+Node parseAssignment(Lexer lexer) {
+	auto left = lexer.parseSymbol();
+	if (left is null) { return null; }
+	auto op = lexer.get;
+	if (op.type == Token.Type.OP_ASSIGN) {
+		auto right = lexer.parseAddsub();
+		return new FuncCallNode(op, op.str, [left, right]);
+	}
+	lexer.unget(op);
+	lexer.unget(left.tok);
+	return null;
 }
 
 // parse variable declaration
@@ -156,6 +178,9 @@ Node parseExpr(Lexer lexer) {
 
 Node parseTopLevel(Lexer lexer) {
 	Node node = null;
+
+	node = lexer.parseAssignment();
+	if (node !is null) { return node; }
 
 	node = lexer.parseExpr();
 	if (node !is null) { return node; }

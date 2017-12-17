@@ -16,7 +16,9 @@ abstract class Node {
 	this(Token tok) { 
 	    this.tok = tok;
 	}
-	abstract Type type(Env env);
+	abstract Type type(Env);
+	Node asRvalue(Env) { return this; }
+	void setValue(Env, Node) { throw new TopiException("this is not lvalue %s".format(tok.str), tok.loc); }
 }
 class NilNode : Node {
 public:
@@ -53,6 +55,37 @@ class RealNode : Node {
 	}
 }
 
+class SymbolNode : Node
+{
+public:
+	string name;
+	this(Token tok, string name) {
+		super(tok);
+		this.name = name;
+	}
+
+	override Type type(Env env) {
+		return env.getVar(name).type(env).varType();
+	}
+
+	override string toString() {
+		return this.name;
+	}
+
+	override Node asRvalue(Env env) { 
+		return env.getVar(name).asRvalue(env);
+	}
+	override void setValue(Env env, Node node) {
+		auto ltype = this.asRvalue(env).type(env);
+		auto rtype = node.type(env);
+		if (ltype != rtype) {
+			throw new TopiException("cannot assign type for %s to %s".format(ltype.toString(), rtype.toString()),
+					tok.loc);
+		}
+		env.setVar(this.name, node);
+	}
+}
+
 // function call node
 class FuncCallNode : Node {
     public:
@@ -63,8 +96,9 @@ class FuncCallNode : Node {
 	    this.name = name;
 	    this.args = args;
 	}
-	// should not be called 
-	override Type type(Env) { return Type.Void; }
+	override Type type(Env env) {
+		throw new Exception("Unimplemented yet");
+	}
 	override string toString() {
 	    return "(%s %s)".format(name, args.map!(to!string).join(" "));
 	}
@@ -80,7 +114,7 @@ class VarDeclNode : Node {
 	    this.typename = typename;
 	    this.varname = varname;
 	}
-	override Type type(Env) { return Type.Void; }
+	override Type type(Env) { throw new TopiException("VarDeclNode is not a Expression", tok.loc); }
 	override string toString() {
 	    return "(%s %s)".format(typename, varname);
 	}
@@ -93,7 +127,7 @@ class VarDeclBlockNode : Node {
 	    super(tok);
 	    this.vardeclNodes = vardeclNodes;
 	}
-	override Type type(Env) { return Type.Void; }
+	override Type type(Env) { throw new TopiException("VarDeclBlockNode is not a Expression", tok.loc); }
 	override string toString() {
 	    return "[%s]".format(vardeclNodes.map!(to!string).join(" ").array);
 	}
@@ -108,7 +142,7 @@ class BlockNode : Node {
 	    this.vardeclblockNode = vardeclblockNode;
 	    this.nodes = nodes;
 	}
-	override Type type(Env) { return Type.Void; }
+	override Type type(Env) { throw new TopiException("BlockNode is not a Expression", tok.loc); }
 	override string toString() {
 	    string declStr = "";
 	    if (vardeclblockNode !is null) { declStr = vardeclblockNode.to!string; }
