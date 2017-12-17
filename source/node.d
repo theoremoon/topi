@@ -16,14 +16,14 @@ abstract class Node {
 	this(Token tok) { 
 	    this.tok = tok;
 	}
-	abstract Type type();
+	abstract Type type(Env env);
 }
 class NilNode : Node {
 public:
 	this(Token tok) {
 		super(tok);
 	}
-	override Type type() { return Type.Void; }
+	override Type type(Env) { return Type.Void; }
 	override string toString() {
 	    return "nil";
 	}
@@ -35,7 +35,7 @@ class IntNode : Node {
 	    super(tok);
 	    this.v = v;
 	}
-	override Type type() { return Type.Int; }
+	override Type type(Env) { return Type.Int; }
 	override string toString() {
 	    return v.to!string;
 	}
@@ -47,7 +47,7 @@ class RealNode : Node {
 	    super(tok);
 	    this.v = v;
 	}
-	override Type type() { return Type.Real; }
+	override Type type(Env) { return Type.Real; }
 	override string toString() {
 	    return v.to!string;
 	}
@@ -64,7 +64,7 @@ class FuncCallNode : Node {
 	    this.args = args;
 	}
 	// should not be called 
-	override Type type() { return Type.Void; }
+	override Type type(Env) { return Type.Void; }
 	override string toString() {
 	    return "(%s %s)".format(name, args.map!(to!string).join(" "));
 	}
@@ -80,7 +80,7 @@ class VarDeclNode : Node {
 	    this.typename = typename;
 	    this.varname = varname;
 	}
-	override Type type() { return Type.Void; }
+	override Type type(Env) { return Type.Void; }
 	override string toString() {
 	    return "(%s %s)".format(typename, varname);
 	}
@@ -93,7 +93,7 @@ class VarDeclBlockNode : Node {
 	    super(tok);
 	    this.vardeclNodes = vardeclNodes;
 	}
-	override Type type() { return Type.Void; }
+	override Type type(Env) { return Type.Void; }
 	override string toString() {
 	    return "[%s]".format(vardeclNodes.map!(to!string).join(" ").array);
 	}
@@ -108,7 +108,7 @@ class BlockNode : Node {
 	    this.vardeclblockNode = vardeclblockNode;
 	    this.nodes = nodes;
 	}
-	override Type type() { return Type.Void; }
+	override Type type(Env) { return Type.Void; }
 	override string toString() {
 	    string declStr = "";
 	    if (vardeclblockNode !is null) { declStr = vardeclblockNode.to!string; }
