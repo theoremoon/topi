@@ -3,7 +3,17 @@ import std.stdio;
 import std.format;
 import std.outbuffer;
 
-import input, lex, token, parse, evall;
+import input, lex, token, parse, evall, compile;
+
+bool opt_exist(string[] args, string key, string[] prefixes = [""]) {
+	foreach (arg; args) {
+		foreach (p; prefixes) {
+			if (p~arg == key) { return true; }
+		}
+	}
+	return false;
+}
+
 
 void main(string[] args)
 {
@@ -17,4 +27,9 @@ void main(string[] args)
     writeln("== Compile Time Execution ==");
     auto evaled = eval(rootNode);
     writeln(evaled);
+
+	if (args.opt_exist("compile")) {
+		auto compiled = compile.compile(evaled);
+		compiled.write();
+	}
 }
