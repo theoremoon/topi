@@ -3,6 +3,7 @@ import std.conv;
 import node, lex, token;
 import exception;
 
+/// parse number literals
 Node parseNum(Lexer lexer) {
 	auto num = lexer.get();
 	if (num.type == Token.Type.DIGIT) {
@@ -18,176 +19,32 @@ Node parseNum(Lexer lexer) {
 	return null;
 }
 
-Node parseSymbol(Lexer lexer) {
-	auto symbol = lexer.get();
-	if (symbol.type == Token.Type.IDENT) {
-		return new SymbolNode(symbol, symbol.str);
-	}
-	lexer.unget(symbol);
-	return lexer.parseNum();
-}
-
-
-// parse for a*b or a/b
-Node parseMuldiv(Lexer lexer, Node left = null) {
+/// parse a*b or a/b
+/// if left is null a*b<- parse here
+/// else a (*b) <- parse here. this will parse a*b*c as (* (* a b) c))
+Node parseMuldiv(Lexer lexer, Node left=null)
+{
+	// get left hand argument
 	if (left is null) {
-		left = lexer.parseSymbol();
-		if (left is null) {
-			return null;
-		}
-	}
-	auto op = lexer.get();
-	// binary * /
-	if (op.type == Token.Type.OP_MUL || op.type == Token.Type.SYM_SLASH) {
-		auto right = lexer.parseMuldiv();
-		if (right is null) {
-			throw new TopiException("expected right hand expr", op.loc);
-		}
-		return lexer.parseAddsub(new FuncCallNode(op, op.str, [left, right]));
-	}
-	// otherwise
-	lexer.unget(op);
-	return left;
-}
-
-Node parseAddsub(Lexer lexer, Node left = null) {
-	if (left is null) {
-		left = lexer.parseMuldiv();
+		left = lexer.parseNum();
 		if (left is null) {
 			return null;
 		}
 	}
 
-	auto op = lexer.get;
-	// binary +-
-	if (op.type == Token.Type.SYM_ADD || op.type == Token.Type.SYM_SUB) {
-		auto right = lexer.parseMuldiv();
-		if (right is null) {
-			throw new TopiException("expected right hand expr", op.loc);
+
+	// parse left-recursion syntax without infinite-loop
+	while (true) {
+		auto op = lexer.get();
+		if (op.type != Token.Type.SYM_ASTERISK && op.type != Token.Type.SYM_SLASH) {
+			break;
 		}
-		return lexer.parseAddsub(new FuncCallNode(op, op.str, [left, right]));
+
+		auto right = lexer.parseNum();
+		if (right is null) {
+			throw new TopiException("right hand operand is expected", op.loc);
+		}
+		left = new BinopNode(op, op.str, [left, right]);
 	}
-	// otherwise
-	lexer.unget(op);
 	return left;
 }
-
-Node parseAssignment(Lexer lexer) {
-	auto left = lexer.parseSymbol();
-	if (left is null) { return null; }
-	auto op = lexer.get;
-	if (op.type == Token.Type.OP_ASSIGN) {
-		auto right = lexer.parseAddsub();
-		return new FuncCallNode(op, op.str, [left, right]);
-	}
-	lexer.unget(op);
-	lexer.unget(left.tok);
-	return null;
-}
-
-// parse variable declaration
-VarDeclNode parseDecl(Lexer lexer) {
-	auto type = lexer.get();
-	// keyword such as Int, Real
-	if (type.type != Token.Type.KEYWORD) {
-		lexer.unget(type);
-		return null;
-	}
-
-	// read variable name
-	auto name = lexer.get();
-	if (name.type != Token.Type.IDENT) {
-		throw new TopiException("variable name expected", name.loc);
-	}
-
-	return new VarDeclNode(type, type.str, name.str);
-}
-
-// variable declaration block likes [Int a\n Int b\n Real c]
-VarDeclBlockNode parseDeclBlock(Lexer lexer) {
-	// open bracket [
-	auto open = lexer.get();
-	if (open.type != Token.Type.OPEN_BRACKET) {
-		lexer.unget(open);
-		return null;
-	}
-
-	// variable declarations which separated by \n
-	VarDeclNode[] declNodes;
-	while (true) {
-		auto declNode = lexer.parseDecl();
-		if (declNode is null) { break; }
-		declNodes ~= declNode;
-
-		if (!lexer.is_next_newline) { break; }
-	}
-
-	// close bracket ]
-	auto close = lexer.get();
-	if (close.type != Token.Type.CLOSE_BRACKET) {
-		throw new TopiException("expected ]", close.loc);
-	}
-
-	return new VarDeclBlockNode(open, declNodes);
-}
-
-// block is { ... } or []{ ... }
-BlockNode parseBlock(Lexer lexer) {
-	// { or [
-	VarDeclBlockNode vardeclblockNode = null;
-	auto open = lexer.get();
-
-	// [ ... ]
-	if (open.type == Token.Type.OPEN_BRACKET) {
-		lexer.unget(open);
-		vardeclblockNode = lexer.parseDeclBlock();
-
-		open = lexer.get();
-	}
-
-	// not a block or error
-	if (open.type != Token.Type.OPEN_MUSTACHE) {
-		if (vardeclblockNode is null) { 
-			lexer.unget(open);
-			return null;
-		}
-		throw new TopiException("{ is expected after [...]", open.loc);
-	}
-
-	// { ... }
-	Node[] nodes = [];
-	while (true) {
-		auto node = lexer.parseTopLevel();
-		if (node is null) { break; }
-		nodes ~= node;
-		if (!lexer.is_next_newline) { break; }
-	}
-
-	// }
-	auto close = lexer.get();
-	if (close.type != Token.Type.CLOSE_MUSTACHE) {
-		throw new TopiException("} is expected", close.loc);
-	}
-
-	return new BlockNode(open, vardeclblockNode, nodes);
-}
-
-Node parseExpr(Lexer lexer) {
-	return lexer.parseAddsub();
-}
-
-Node parseTopLevel(Lexer lexer) {
-	Node node = null;
-
-	node = lexer.parseAssignment();
-	if (node !is null) { return node; }
-
-	node = lexer.parseExpr();
-	if (node !is null) { return node; }
-
-	node = lexer.parseBlock();
-	if (node !is null) { return node; }
-
-	return node;
-}
-
