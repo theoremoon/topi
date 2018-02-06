@@ -186,9 +186,9 @@ Token lex_symbol(Input input) {
 
     switch (c) {
         case '+':
-            return new Token(Token.Type.SYM_ADD, new SrcStr([c]));
+            return new Token(Token.Type.SYM_PLUS, new SrcStr([c]));
         case '-':
-            return new Token(Token.Type.SYM_SUB, new SrcStr([c]));
+            return new Token(Token.Type.SYM_HYPHEN, new SrcStr([c]));
         case '*':
             return new Token(Token.Type.SYM_ASTERISK,  new SrcStr([c]));
         case '/':
