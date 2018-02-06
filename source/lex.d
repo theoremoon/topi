@@ -154,10 +154,12 @@ Token lex_number(Input input) {
 
             return lex_real(input);
         }
-        throw new TopiException("Unknown prefix 0%c".format(c2), c.loc);
+		
+		// like 0
+		input.unget(c2);
     }
     // digit
-    else if (c.isDigit) {
+    if (c.isDigit) {
 	SrcChar[] buf;
         while (c.isDigit) {
             buf ~= c;
@@ -188,7 +190,7 @@ Token lex_symbol(Input input) {
         case '-':
             return new Token(Token.Type.SYM_SUB, new SrcStr([c]));
         case '*':
-            return new Token(Token.Type.OP_MUL,  new SrcStr([c]));
+            return new Token(Token.Type.SYM_ASTERISK,  new SrcStr([c]));
         case '/':
             return new Token(Token.Type.SYM_SLASH, new SrcStr([c]));
         case '=':
