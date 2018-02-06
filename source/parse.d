@@ -19,14 +19,30 @@ Node parseNum(Lexer lexer) {
 	return null;
 }
 
+/// parse +a or -a 
+Node parseUnaryPlusMinus(Lexer lexer)
+{
+	auto op = lexer.get();
+	if (op.type == Token.Type.SYM_PLUS || op.type == Token.Type.SYM_HYPHEN) {
+		auto expr = lexer.parseNum();  // higher-coupling-level rule
+		if (expr is null) {
+			throw new TopiException("expression is expected", op.loc);
+		}
+		return new BinopNode(op, op.str, [expr]);
+	}
+
+	lexer.unget(op);
+	return lexer.parseNum();
+}
+
 /// parse a*b or a/b
 /// if left is null a*b<- parse here
 /// else a (*b) <- parse here. this will parse a*b*c as (* (* a b) c))
-Node parseMuldiv(Lexer lexer, Node left=null)
+Node parseMulDiv(Lexer lexer, Node left=null)
 {
 	// get left hand argument
 	if (left is null) {
-		left = lexer.parseNum(); // higher-coupling-level rule
+		left = lexer.parseUnaryPlusMinus(); // higher-coupling-level rule
 		if (left is null) {
 			return null;
 		}
@@ -41,7 +57,7 @@ Node parseMuldiv(Lexer lexer, Node left=null)
 			break;
 		}
 
-		auto right = lexer.parseNum();  // higher-coupling-level rule
+		auto right = lexer.parseUnaryPlusMinus();  // higher-coupling-level rule
 		if (right is null) {
 			throw new TopiException("right hand operand is expected", op.loc);
 		}
@@ -53,11 +69,11 @@ Node parseMuldiv(Lexer lexer, Node left=null)
 /// parse a+b or a-b
 /// if left is null a+b<- parse here
 /// else a (+b) <- parse here. this will parse a+b+c as (+ (+ a b) c))
-Node parseAddsub(Lexer lexer, Node left=null)
+Node parseAddSub(Lexer lexer, Node left=null)
 {
 	// get left hand argument
 	if (left is null) {
-		left = lexer.parseMuldiv();  // higher-coupling-level rule
+		left = lexer.parseMulDiv();  // higher-coupling-level rule
 		if (left is null) {
 			return null;
 		}
@@ -72,7 +88,7 @@ Node parseAddsub(Lexer lexer, Node left=null)
 			break;
 		}
 
-		auto right = lexer.parseMuldiv();  // higher-coupling-level rule
+		auto right = lexer.parseMulDiv();  // higher-coupling-level rule
 		if (right is null) {
 			throw new TopiException("right hand operand is expected", op.loc);
 		}

@@ -19,7 +19,7 @@ void main(string[] args)
 {
     Input input = new Input(stdin);
     auto lexer = new Lexer(input);
-	auto node = parseAddsub(lexer);
+	auto node = parseAddSub(lexer);
 
 	writeln(node);
 }
