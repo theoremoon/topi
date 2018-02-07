@@ -1,17 +1,19 @@
 /// node module. node makes AST
 module node;
 
-
+import compile;
 import token;
 
 /// parent class of all Node
 abstract class Node
 {
 public:
+	Store store;   /// in memory, this value is here
 	this(Token tok)
 	{
 		this.tok = tok;
 	}
+	abstract string compile(CompileContext cc, bool imm_ok, bool mem_ok, string[] required_registers);
 private:
 	Token tok;  /// symbol of this expression in source code
 }
@@ -23,12 +25,28 @@ class IntNode : Node
 public:
 	long v;  /// value
 
-
 	/// constructor: initialize v
 	this(Token tok, long v)
 	{
 		super(tok);
 		this.v = v;
+	}
+
+	override string compile(CompileContext cc, bool imm_ok, bool mem_ok, string[] require_here)
+	{
+		if (imm_ok) {
+			import std.conv;
+			return this.v.to!string;
+		}
+		foreach (reg; require_here) {
+			if (super.store is null) {
+				super.store = new Store(8);
+			}
+			super.store.require_register(cc, reg);
+			break;
+		}
+		cc.buf.writefln("\tmov %s, %d", super.store.memory_str(cc), this.v);
+		return super.store.memory_str(cc);
 	}
 
 	override string toString()
@@ -51,6 +69,10 @@ public:
 		this.v = v;
 	}
 
+	override string compile(CompileContext cc, bool imm_ok, bool mem_ok, string[] require_here)
+	{
+		throw new Exception("internal error: not implemented yet");
+	}
 	override string toString()
 	{
 		import std.conv;
@@ -70,6 +92,19 @@ public:
 		super(tok);
 		this.op = op;
 		this.args = args;
+	}
+
+	override string compile(CompileContext cc, bool imm_ok, bool mem_ok, string[] require_here)
+	{
+		if (this.op == "+") {
+			auto dst = this.args[0].compile(cc, false, true, ["rax"]);
+			auto src = this.args[1].compile(cc, true, true, ["rbx", "rcx"]);
+
+			cc.buf.writefln("\taddi %s, %s", dst, src);
+			return dst;
+		}
+
+		throw new Exception("internal error: not implemented yet");
 	}
 
 	override string toString()
