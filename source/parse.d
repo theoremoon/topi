@@ -36,18 +36,13 @@ Node parseUnaryPlusMinus(Lexer lexer)
 }
 
 /// parse a*b or a/b
-/// if left is null a*b<- parse here
-/// else a (*b) <- parse here. this will parse a*b*c as (* (* a b) c))
-Node parseMulDiv(Lexer lexer, Node left=null)
+Node parseMulDiv(Lexer lexer)
 {
 	// get left hand argument
+	Node left = lexer.parseUnaryPlusMinus(); // higher-coupling-level rule
 	if (left is null) {
-		left = lexer.parseUnaryPlusMinus(); // higher-coupling-level rule
-		if (left is null) {
-			return null;
-		}
+		return null;
 	}
-
 
 	// parse left-recursion syntax without infinite-loop
 	while (true) {
@@ -69,14 +64,12 @@ Node parseMulDiv(Lexer lexer, Node left=null)
 /// parse a+b or a-b
 /// if left is null a+b<- parse here
 /// else a (+b) <- parse here. this will parse a+b+c as (+ (+ a b) c))
-Node parseAddSub(Lexer lexer, Node left=null)
+Node parseAddSub(Lexer lexer)
 {
 	// get left hand argument
+	Node left = lexer.parseMulDiv();  // higher-coupling-level rule
 	if (left is null) {
-		left = lexer.parseMulDiv();  // higher-coupling-level rule
-		if (left is null) {
-			return null;
-		}
+		return null;
 	}
 
 
