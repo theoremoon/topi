@@ -92,7 +92,9 @@ public:
 		// another store object is using this register
 		if (this.registers[regname] !is null && this.registers[regname] !is this) {
 			this.registers[regname].save_to_memory(cc);
-			cc.buf.writefln("\tmov %s, %s", regname, this.memory_str(cc));
+			if (this.offset != -1) {
+				cc.buf.writefln("\tmov %s, %s", regname, this.memory_str(cc));
+			}
 		}
 		this.registers[regname] = this;
 	}
