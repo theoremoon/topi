@@ -3,7 +3,7 @@ import std.stdio;
 import std.format;
 import std.outbuffer;
 
-import input, lex, token, parse, node, compile; 
+import input, lex, token, parse, node, compile, func; 
 
 bool opt_exist(string[] args, string key, string[] prefixes = [""]) {
 	foreach (arg; args) {
@@ -22,6 +22,7 @@ void main(string[] args)
 	auto node = parseAddSub(lexer);
 
 	auto cc = new CompileContext();
+	cc.add_func(add_int_operator());
 	node.compile(cc, false, false, []);
 
 

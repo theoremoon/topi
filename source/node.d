@@ -2,7 +2,9 @@
 module node;
 
 import compile;
+import type;
 import token;
+import func;
 
 /// parent class of all Node
 abstract class Node
@@ -13,6 +15,7 @@ public:
 	{
 		this.tok = tok;
 	}
+	abstract Type type(CompileContext cc);   /// return type of this node
 	abstract string compile(CompileContext cc, bool imm_ok, bool mem_ok, string[] required_registers);
 private:
 	Token tok;  /// symbol of this expression in source code
@@ -32,6 +35,10 @@ public:
 		this.v = v;
 	}
 
+	override Type type(CompileContext cc)
+	{
+		return Type.Int();
+	}
 	override string compile(CompileContext cc, bool imm_ok, bool mem_ok, string[] require_here)
 	{
 		if (imm_ok) {
@@ -69,6 +76,10 @@ public:
 		this.v = v;
 	}
 
+	override Type type(CompileContext cc) {
+		throw new Exception("internal error: not implemented yet");
+	}
+
 	override string compile(CompileContext cc, bool imm_ok, bool mem_ok, string[] require_here)
 	{
 		throw new Exception("internal error: not implemented yet");
@@ -84,27 +95,35 @@ public:
 /// this class will be replaced to funccall 
 class BinopNode : Node
 {
+private:
+	BuiltInFunc load_func(CompileContext cc)
+	{
+		if (this.func !is null) { return this.func; }
+		this.func = cc.search_func(this.op, this.args);
+		return this.func;
+	}
+
 public:
 	string op;
 	Node[] args;
+	BuiltInFunc func;
 	this(Token tok, string op, Node[] args)
 	{
 		super(tok);
 		this.op = op;
 		this.args = args;
+		this.func = null;
 	}
+
+	override Type type(CompileContext cc)
+	{
+		return this.load_func(cc).rettype;
+	}
+
 
 	override string compile(CompileContext cc, bool imm_ok, bool mem_ok, string[] require_here)
 	{
-		if (this.op == "+") {
-			auto dst = this.args[0].compile(cc, false, true, ["rax"]);
-			auto src = this.args[1].compile(cc, true, true, ["rbx", "rcx"]);
-
-			cc.buf.writefln("\taddi %s, %s", dst, src);
-			return dst;
-		}
-
-		throw new Exception("internal error: not implemented yet");
+		return this.load_func(cc).call(cc, this.args, imm_ok, mem_ok, ["rax", "rbx", "rcx"]);
 	}
 
 	override string toString()

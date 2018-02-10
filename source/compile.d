@@ -1,7 +1,11 @@
 /// module for compilation
 module compile;
 
+import func;
+import node;
+
 import std.outbuffer;
+import std.container;
 
 /// Compile context
 /// Scope and Memory management
@@ -9,6 +13,7 @@ class CompileContext
 {
 private:
 	uint offset;  // offset from rbp
+	DList!BuiltInFunc funcs;
 public:
 	static OutBuffer buf;
 	static this()
@@ -19,6 +24,27 @@ public:
 	this()
 	{
 		this.offset = 0;
+		this.funcs  = DList!BuiltInFunc();
+	}
+
+	void add_func(BuiltInFunc f)
+	{
+		this.funcs.insertFront(f);
+	}
+
+	BuiltInFunc search_func(string name, Node[] args)
+	{
+		import std.algorithm;
+		auto types = args.map!(a => a.type(this));
+		BuiltInFunc func = null;
+		foreach (f; this.funcs) {  // search by name and type
+			if (f.name != name) { continue; }
+			if (f.check_args(this, args)) {
+				func = f;
+				break;
+			}
+		}
+		return func;
 	}
 
 	uint store_this(uint size)
@@ -80,7 +106,7 @@ public:
 
 		foreach (name, reg; this.registers) {
 			if (reg is this) {
-				cc.buf.writefln("\tmov [rbp-%d], %s", this.offset, name);
+				cc.buf.writefln("\tmov rbp-%d, %s", this.offset, name);
 				break;
 			}
 		}
