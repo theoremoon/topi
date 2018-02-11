@@ -5,6 +5,7 @@ import compile;
 import type;
 import token;
 import func;
+import knormal;
 
 /// parent class of all Node
 abstract class Node
@@ -15,6 +16,7 @@ public:
 	{
 		this.tok = tok;
 	}
+	abstract SSASymbol knormalize(ref SSANode[]);   /// k normalize 
 	abstract Type type(CompileContext cc);   /// return type of this node
 	abstract string compile(CompileContext cc, bool imm_ok, bool mem_ok, string[] required_registers);
 private:
@@ -33,6 +35,12 @@ public:
 	{
 		super(tok);
 		this.v = v;
+	}
+
+	override SSASymbol knormalize(ref SSANode[] ssaNodes) {
+		auto sym = SSASymbol.create(this.tok);
+		ssaNodes ~= new SSAInt(sym, this.v);
+		return sym;
 	}
 
 	override Type type(CompileContext cc)
@@ -76,6 +84,10 @@ public:
 		this.v = v;
 	}
 
+	override SSASymbol knormalize(ref SSANode[] ssaNodes) {
+		throw new Exception("internal error: not implemented yet");
+	}
+
 	override Type type(CompileContext cc) {
 		throw new Exception("internal error: not implemented yet");
 	}
@@ -113,6 +125,18 @@ public:
 		this.op = op;
 		this.args = args;
 		this.func = null;
+	}
+
+	override SSASymbol knormalize(ref SSANode[] ssaNodes) {
+		import std.algorithm, std.array;
+		SSASymbol[] argSyms = []; 
+		foreach (arg; this.args) {
+			argSyms ~= arg.knormalize(ssaNodes);
+		}
+
+		auto sym = SSASymbol.create(tok);
+		ssaNodes ~= new SSAFuncall(sym, this.op, argSyms);
+		return sym;
 	}
 
 	override Type type(CompileContext cc)

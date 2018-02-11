@@ -4,6 +4,7 @@ import std.format;
 import std.outbuffer;
 
 import input, lex, token, parse, node, compile, func; 
+import knormal;
 
 bool opt_exist(string[] args, string key, string[] prefixes = [""]) {
 	foreach (arg; args) {
@@ -21,10 +22,16 @@ void main(string[] args)
     auto lexer = new Lexer(input);
 	auto node = parseAddSub(lexer);
 
-	auto cc = new CompileContext();
-	cc.add_func(add_int_operator());
-	node.compile(cc, false, false, []);
+	SSANode[] ssaNodes = [];
+	auto ssanode = node.knormalize(ssaNodes);
+	foreach (n; ssaNodes) {
+		writeln(n);
+	}
 
-
-	writeln(cc.buf.toString());
+	// auto cc = new CompileContext();
+	// cc.add_func(add_int_operator());
+	// node.compile(cc, false, false, []);
+	//
+	//
+	// writeln(cc.buf.toString());
 }
