@@ -1,11 +1,10 @@
-module knormal;
+module ssanode;
 
 import token;
-import func;
 
 /// k-normalized node
-/// left = expr
-/// expr is binop or funccall
+/// left = expr 
+/// (strictly this is not a SSA form, but this is k-normalized form)
 abstract class SSANode
 {
 public:
@@ -88,13 +87,11 @@ class SSAFuncall : SSANode
 public:
 	string name;
 	SSASymbol[] args;
-	BuiltInFunc func;
 	this(SSASymbol sym, string name, SSASymbol[] args)
 	{
 		super(sym);
 		this.name = name;
 		this.args = args;
-		this.func = null;
 	}
 
 	override string toString()

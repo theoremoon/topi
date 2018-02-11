@@ -3,8 +3,8 @@ import std.stdio;
 import std.format;
 import std.outbuffer;
 
-import input, lex, token, parse, node, compile, func; 
-import knormal;
+import input, lex, token, parse, node; 
+import ssanode;
 
 bool opt_exist(string[] args, string key, string[] prefixes = [""]) {
 	foreach (arg; args) {

@@ -28,7 +28,7 @@ Node parseUnaryPlusMinus(Lexer lexer)
 		if (expr is null) {
 			throw new TopiException("expression is expected", op.loc);
 		}
-		return new BinopNode(op, op.str, [expr]);
+		return new FuncallNode(op, op.str, [expr]);
 	}
 
 	lexer.unget(op);
@@ -56,7 +56,7 @@ Node parseMulDiv(Lexer lexer)
 		if (right is null) {
 			throw new TopiException("right hand operand is expected", op.loc);
 		}
-		left = new BinopNode(op, op.str, [left, right]);
+		left = new FuncallNode(op, op.str, [left, right]);
 	}
 	return left;
 }
@@ -85,7 +85,7 @@ Node parseAddSub(Lexer lexer)
 		if (right is null) {
 			throw new TopiException("right hand operand is expected", op.loc);
 		}
-		left = new BinopNode(op, op.str, [left, right]);
+		left = new FuncallNode(op, op.str, [left, right]);
 	}
 	return left;
 }
